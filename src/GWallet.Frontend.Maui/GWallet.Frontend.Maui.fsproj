@@ -133,11 +133,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\GWallet.Frontend.XF\Controls\HoopChart.fs" />
     <EmbeddedResource Include="BalancesPage.xaml" />
     <EmbeddedResource Include="LoadingPage.xaml" />
     <EmbeddedResource Include="WelcomePage.xaml" />
     <EmbeddedResource Include="WelcomePage2.xaml" />
-    <Compile Include="..\GWallet.Frontend.XF\Controls\CircleChartView.fs" />
     <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
     <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
     <Compile Include="..\GWallet.Frontend.XF\BalancesPage.xaml.fs">
