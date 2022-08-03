@@ -356,8 +356,10 @@ module FrontendHelpers =
         absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
         absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
 
-        //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
-        if Device.RuntimePlatform = Device.macOS then
+        if Device.RuntimePlatform = Device.GTK 
+            //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
+            || Device.RuntimePlatform = Device.macOS 
+            then
             let bindImageSize bindableProperty =
                 let binding = Binding(Path = "Height", Source = cryptoLabel)
                 currencyLogoImg.SetBinding(bindableProperty, binding)
