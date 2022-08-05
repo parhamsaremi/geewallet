@@ -39,37 +39,25 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 "red"
         let currencyLowerCase = currency.ToString().ToLower()
         let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
-        async {
-            let! currencyLogoImg = 
-                (fun () ->
-                    Image(Source = imageSource, IsVisible = true)
-                )
-                |> Device.InvokeOnMainThreadAsync
-                |> Async.AwaitTask
-            return currencyLogoImg
-        }
+        let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
+        currencyLogoImg
+        
     let GetAllCurrencyCases(): seq<Currency*bool> =
         seq {
             for currency in Currency.GetAll() do
                 yield currency,true
                 yield currency,false
         }
-    let GetAllImages(): Async<List<(Currency*bool)*Image>> =
-        async {
-            let allCurrnecyCases = GetAllCurrencyCases()
-            let mutable ls = List.empty
-            for currency, readonly in allCurrnecyCases do
-                let! image = CreateImage currency readonly
-                ls <- ls @ [((currency, readonly), image)]
-            return ls
-            
+    let GetAllImages(): seq<(Currency*bool)*Image> =
+        seq {
+            for currency,readOnly in GetAllCurrencyCases() do
+                yield (currency,readOnly),((CreateImage currency readOnly))
         }
+
         
-    let PreLoadCurrencyImages(): Async<Map<Currency*bool,Image>> =
-        async {
-            let! allImages = GetAllImages()
-            return allImages |> Map.ofList
-        }
+    let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
+       GetAllImages() |> Map.ofSeq
+            
 
     let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
@@ -108,19 +96,19 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
     member this.Transition(): unit =
+        let currencyImages = PreLoadCurrencyImages()
+
+        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
+        let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
+                                                                                false
+                                                                                ServerSelectionMode.Fast
+                                                                                (Some progressBarLayout)
+
+        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
+        let _,readOnlyAccountBalancesJob =
+            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
+
         async {
-            let! currencyImages = PreLoadCurrencyImages()
-
-            let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
-            let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
-                                                                                    false
-                                                                                    ServerSelectionMode.Fast
-                                                                                    (Some progressBarLayout)
-
-            let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
-            let _,readOnlyAccountBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
-
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJob
                                                                      readOnlyAccountBalancesJob
 
@@ -142,9 +130,8 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         if showLogoFirst then
             Device.BeginInvokeOnMainThread(fun _ ->
                 mainLayout.Children.Add logoImg
+                this.Transition()
             )
-
-            this.Transition()
 
             Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
                 ShowLoadingText()
