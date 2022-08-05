@@ -54,13 +54,22 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 yield currency,true
                 yield currency,false
         }
-    let GetAllImages(): seq<(Currency*bool)*Image> =
-        seq {
-            for currency,readOnly in GetAllCurrencyCases() do
-                yield (currency,readOnly),((CreateImage currency readOnly) |> Async.RunSynchronously)
+    let GetAllImages(): Async<List<(Currency*bool)*Image>> =
+        async {
+            let allCurrnecyCases = GetAllCurrencyCases()
+            let mutable ls = List.empty
+            for currency, readonly in allCurrnecyCases do
+                let! image = CreateImage currency readonly
+                ls <- ls @ [((currency, readonly), image)]
+            return ls
+            
         }
-    let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
-        GetAllImages() |> Map.ofSeq
+        
+    let PreLoadCurrencyImages(): Async<Map<Currency*bool,Image>> =
+        async {
+            let! allImages = GetAllImages()
+            return allImages |> Map.ofList
+        }
 
     let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
@@ -99,27 +108,26 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
     member this.Transition(): unit =
-        let currencyImages = PreLoadCurrencyImages()
-
-        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
-        let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
-                                                                                false
-                                                                                ServerSelectionMode.Fast
-                                                                                (Some progressBarLayout)
-        let allNormalAccountBalancesJobAugmented = async {
-            let! normalAccountBalances = allNormalAccountBalancesJob
-            return normalAccountBalances
-        }
-
-        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
-        let _,readOnlyAccountBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
-        let readOnlyAccountBalancesJobAugmented = async {
-            let! readOnlyAccountBalances = readOnlyAccountBalancesJob
-            return readOnlyAccountBalances
-        }
-
         async {
+            let! currencyImages = PreLoadCurrencyImages()
+
+            let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
+            let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
+                                                                                    false
+                                                                                    ServerSelectionMode.Fast
+                                                                                    (Some progressBarLayout)
+            let allNormalAccountBalancesJobAugmented = async {
+                let! normalAccountBalances = allNormalAccountBalancesJob
+                return normalAccountBalances
+            }
+
+            let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
+            let _,readOnlyAccountBalancesJob =
+                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
+            let readOnlyAccountBalancesJobAugmented = async {
+                let! readOnlyAccountBalances = readOnlyAccountBalancesJob
+                return readOnlyAccountBalances
+            }
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJobAugmented
                                                                      readOnlyAccountBalancesJobAugmented
 
