@@ -39,8 +39,15 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 "red"
         let currencyLowerCase = currency.ToString().ToLower()
         let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
-        let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
-        currencyLogoImg
+        async {
+            let! currencyLogoImg = 
+                (fun () ->
+                    Image(Source = imageSource, IsVisible = true)
+                )
+                |> Device.InvokeOnMainThreadAsync
+                |> Async.AwaitTask
+            return currencyLogoImg
+        }
     let GetAllCurrencyCases(): seq<Currency*bool> =
         seq {
             for currency in Currency.GetAll() do
@@ -50,7 +57,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     let GetAllImages(): seq<(Currency*bool)*Image> =
         seq {
             for currency,readOnly in GetAllCurrencyCases() do
-                yield (currency,readOnly),(CreateImage currency readOnly)
+                yield (currency,readOnly),((CreateImage currency readOnly) |> Async.RunSynchronously)
         }
     let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
         GetAllImages() |> Map.ofSeq
