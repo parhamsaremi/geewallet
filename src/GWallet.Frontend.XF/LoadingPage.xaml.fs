@@ -116,20 +116,13 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                                                                                     false
                                                                                     ServerSelectionMode.Fast
                                                                                     (Some progressBarLayout)
-            let allNormalAccountBalancesJobAugmented = async {
-                let! normalAccountBalances = allNormalAccountBalancesJob
-                return normalAccountBalances
-            }
 
             let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
             let _,readOnlyAccountBalancesJob =
                 FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
-            let readOnlyAccountBalancesJobAugmented = async {
-                let! readOnlyAccountBalances = readOnlyAccountBalancesJob
-                return readOnlyAccountBalances
-            }
-            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJobAugmented
-                                                                     readOnlyAccountBalancesJobAugmented
+
+            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJob
+                                                                     readOnlyAccountBalancesJob
 
             let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
 
