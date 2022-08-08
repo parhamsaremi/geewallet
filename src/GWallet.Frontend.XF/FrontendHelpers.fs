@@ -346,23 +346,29 @@ module FrontendHelpers =
         let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
                                       Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
 
-        stackLayout.Children.Add currencyLogoImg
-        stackLayout.Children.Add cryptoLabel
-        stackLayout.Children.Add fiatLabel
+        
+        Device.BeginInvokeOnMainThread(fun _ ->
+            stackLayout.Children.Add currencyLogoImg
+            stackLayout.Children.Add cryptoLabel
+            stackLayout.Children.Add fiatLabel
+        )
 
         let colorBox = BoxView(Color = GetCryptoColor currency)
 
         let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
-        absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
-        absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
-
+        Device.BeginInvokeOnMainThread(fun _ ->
+            absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
+            absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
+        )
         if Device.RuntimePlatform = Device.GTK 
             //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
             || Device.RuntimePlatform = Device.macOS 
             then
             let bindImageSize bindableProperty =
                 let binding = Binding(Path = "Height", Source = cryptoLabel)
-                currencyLogoImg.SetBinding(bindableProperty, binding)
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    currencyLogoImg.SetBinding(bindableProperty, binding)
+                )
 
             bindImageSize VisualElement.WidthRequestProperty
             bindImageSize VisualElement.HeightRequestProperty
