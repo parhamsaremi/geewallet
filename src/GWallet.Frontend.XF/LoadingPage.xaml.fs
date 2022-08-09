@@ -41,13 +41,11 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         let currencyLowerCase = currency.ToString().ToLower()
         let img = 
             async {
-                let! currencyLogoImg = 
-                    (fun _ -> 
-                        let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
-                        Image(Source = imageSource, IsVisible = true)
-                    )
-                    |> Device.InvokeOnMainThreadAsync
-                    |> Async.AwaitTask
+                let! mainThreadSynchContext =
+                    Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                do! Async.SwitchToContext mainThreadSynchContext
+                let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
+                let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
                 return currencyLogoImg
             }
         img
