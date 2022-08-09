@@ -39,9 +39,19 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             else
                 "red"
         let currencyLowerCase = currency.ToString().ToLower()
-        let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
-        let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
-        currencyLogoImg
+        let img = 
+            async {
+                let! currencyLogoImg = 
+                    (fun _ -> 
+                        let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
+                        Image(Source = imageSource, IsVisible = true)
+                    )
+                    |> Device.InvokeOnMainThreadAsync
+                    |> Async.AwaitTask
+                return currencyLogoImg
+            }
+        img
+        
         
     let GetAllCurrencyCases(): seq<Currency*bool> =
         seq {
@@ -49,16 +59,25 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 yield currency,true
                 yield currency,false
         }
-    let GetAllImages(): seq<(Currency*bool)*Image> =
+    let GetAllImages(): Async<array<(Currency*bool)*Image>> =
         seq {
             for currency,readOnly in GetAllCurrencyCases() do
-                yield (currency,readOnly),((CreateImage currency readOnly))
-        }
+                yield
+                    async {
+                        let! img = (CreateImage currency readOnly)
+                        return (currency,readOnly),img
+                    }
+                
+        } |> Async.Parallel
 
         
-    let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
-       GetAllImages() |> Map.ofSeq
-            
+    let PreLoadCurrencyImages(): Async<Map<Currency*bool,Image>> =
+        let mapOfImages =
+            async {
+                let! images = GetAllImages()
+                return images |> Map.ofArray
+            }
+        mapOfImages
 
     let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
@@ -97,9 +116,14 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
     member this.Transition(): unit =
-        let currencyImages = PreLoadCurrencyImages()
-
         async {
+            let! currencyImagesJob = 
+                (fun _ -> 
+                    PreLoadCurrencyImages()
+                )
+                |> Device.InvokeOnMainThreadAsync
+                |> Async.AwaitTask
+            let! currencyImages = currencyImagesJob
             let! normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
             let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
                                                                                     false
