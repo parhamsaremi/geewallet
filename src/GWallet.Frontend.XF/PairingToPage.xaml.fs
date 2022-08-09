@@ -94,7 +94,7 @@ type PairingToPage(balancesPage: Page,
                     Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>()
                     |> List.ofSeq
                     |> List.map (fun account -> account :> IAccount)
-                let readOnlyAccountsWithWidgets =
+                let! readOnlyAccountsWithWidgets =
                     FrontendHelpers.CreateWidgetsForAccounts
                         readOnlyAccounts currencyImages true
 

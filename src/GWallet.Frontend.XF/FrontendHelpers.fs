@@ -341,67 +341,105 @@ module FrontendHelpers =
             normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
 
     let CreateCurrencyBalanceFrame currency (cryptoLabel: Label) (fiatLabel: Label) currencyLogoImg classId =
-        let colorBoxWidth = 10.
+        let frame = 
+            async {
+                let colorBoxWidth = 10.
 
-        let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
-                                      Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
+                let! stackLayout = 
+                    async {
+                        return! (fun _ ->
+                            StackLayout(Orientation = StackOrientation.Horizontal,
+                                                Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
+                        ) 
+                        |> Device.InvokeOnMainThreadAsync
+                        |> Async.AwaitTask
+                    }
 
-        
-        Device.BeginInvokeOnMainThread(fun _ ->
-            stackLayout.Children.Add currencyLogoImg
-            stackLayout.Children.Add cryptoLabel
-            stackLayout.Children.Add fiatLabel
-        )
-
-        let colorBox = BoxView(Color = GetCryptoColor currency)
-
-        let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
-        Device.BeginInvokeOnMainThread(fun _ ->
-            absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
-            absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
-        )
-        if Device.RuntimePlatform = Device.GTK 
-            //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
-            || Device.RuntimePlatform = Device.macOS 
-            then
-            let bindImageSize bindableProperty =
-                let binding = Binding(Path = "Height", Source = cryptoLabel)
+                
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    currencyLogoImg.SetBinding(bindableProperty, binding)
+                    stackLayout.Children.Add currencyLogoImg
+                    stackLayout.Children.Add cryptoLabel
+                    stackLayout.Children.Add fiatLabel
                 )
 
-            bindImageSize VisualElement.WidthRequestProperty
-            bindImageSize VisualElement.HeightRequestProperty
+                let! colorBox = 
+                    async {
+                        return! (fun _ ->
+                            BoxView(Color = GetCryptoColor currency)
+                        ) 
+                        |> Device.InvokeOnMainThreadAsync
+                        |> Async.AwaitTask
+                    }
 
-        let frame = Frame(HasShadow = false,
-                          ClassId = classId,
-                          Content = absoluteLayout,
-                          Padding = Thickness(0.),
-                          BorderColor = Color.SeaShell)
+                let! absoluteLayout = 
+                    async {
+                        return! (fun _ ->
+                            AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
+                        ) 
+                        |> Device.InvokeOnMainThreadAsync
+                        |> Async.AwaitTask
+                    }
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
+                    absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
+                )
+                if Device.RuntimePlatform = Device.GTK 
+                    //TODO: remove this workaround once https://github.com/xamarin/Xamarin.F    orms/pull/5207 is merged
+                    || Device.RuntimePlatform = Device.macOS 
+                    then
+                    let bindImageSize bindableProperty =
+                        let binding = Binding(Path = "Height", Source = cryptoLabel)
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            currencyLogoImg.SetBinding(bindableProperty, binding)
+                        )
+
+                    bindImageSize VisualElement.WidthRequestProperty
+                    bindImageSize VisualElement.HeightRequestProperty
+                let! frame = 
+                    async {
+                        return! (fun _ ->
+                            Frame(HasShadow = false,
+                            ClassId = classId,
+                            Content = absoluteLayout,
+                            Padding = Thickness(0.),
+                            BorderColor = Color.SeaShell)
+                        ) 
+                        |> Device.InvokeOnMainThreadAsync
+                        |> Async.AwaitTask
+                    }
+                return frame
+            }
         frame
 
-    let private CreateWidgetsForAccount (currency: Currency) currencyLogoImg classId: BalanceWidgets =
+    let private CreateWidgetsForAccount (currency: Currency) currencyLogoImg classId: Async<BalanceWidgets> =
         let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start
         let fiatBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.EndAndExpand
-
-        {
-            CryptoLabel = accountBalanceLabel
-            FiatLabel = fiatBalanceLabel
-            Frame = CreateCurrencyBalanceFrame currency accountBalanceLabel fiatBalanceLabel currencyLogoImg classId
-        }
+        let widget = 
+            async {
+                let! frame = CreateCurrencyBalanceFrame currency accountBalanceLabel fiatBalanceLabel currencyLogoImg classId
+                return {
+                    CryptoLabel = accountBalanceLabel
+                    FiatLabel = fiatBalanceLabel
+                    Frame = frame
+                }
+            }
+        widget
 
     let CreateWidgetsForAccounts(accounts: seq<IAccount>) (currencyImages: Map<Currency*bool,Image>) readOnly
-                                    : List<BalanceSet> =
+                                    : Async<array<BalanceSet>> =
         let classId,_ = GetActiveAndInactiveCurrencyClassIds readOnly
         seq {
-            for account in accounts do
-                let currencyLogoImg = currencyImages.[(account.Currency,readOnly)]
-                let balanceWidgets = CreateWidgetsForAccount account.Currency currencyLogoImg classId
-                yield {
-                    Account = account;
-                    Widgets = balanceWidgets
-                }
-        } |> List.ofSeq
+            for account in accounts do              
+                yield 
+                    async {
+                        let currencyLogoImg = currencyImages.[(account.Currency,readOnly)]
+                        let! balanceWidgets = CreateWidgetsForAccount account.Currency currencyLogoImg classId
+                        return {
+                            Account = account;
+                            Widgets = balanceWidgets
+                        }
+                    }
+        } |> List.ofSeq |> Async.Parallel
 
     let BarCodeScanningOptions = MobileBarcodeScanningOptions(
                                      TryHarder = Nullable<bool> true,

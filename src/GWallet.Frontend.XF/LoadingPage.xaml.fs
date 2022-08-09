@@ -3,6 +3,7 @@
 open System
 open System.Linq
 open System.Threading.Tasks
+open System.Threading
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -98,17 +99,17 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     member this.Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
 
-        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
-        let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
-                                                                                false
-                                                                                ServerSelectionMode.Fast
-                                                                                (Some progressBarLayout)
-
-        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
-        let _,readOnlyAccountBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
-
         async {
+            let! normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
+            let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
+                                                                                    false
+                                                                                    ServerSelectionMode.Fast
+                                                                                    (Some progressBarLayout)
+
+            let! readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
+            let _,readOnlyAccountBalancesJob =
+                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
+
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJob
                                                                      readOnlyAccountBalancesJob
 
@@ -139,7 +140,8 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 false // do not run timer again
             )
         else
-            ShowLoadingText()
-
-            this.Transition()
-
+            Device.BeginInvokeOnMainThread(fun _ ->
+                ShowLoadingText()
+                this.Transition()
+            )
+        
