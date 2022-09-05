@@ -41,9 +41,8 @@ type PairingFromPage(previousPage: Page,
             nextStepButton.IsVisible <- true
         | None -> ()
 
-        // FIXME: remove this workaround below when https://github.com/xamarin/Xamarin.Forms/issues/8843 gets fixed
-        // TODO: file the UWP bug too
-        if Device.RuntimePlatform <> Device.macOS && Device.RuntimePlatform <> Device.UWP then () else
+        // TODO: file the UWP bug which is the same as https://github.com/xamarin/Xamarin.Forms/issues/8843
+        if Device.RuntimePlatform <> Device.UWP then () else
 
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->

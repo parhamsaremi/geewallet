@@ -141,8 +141,8 @@
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>6.2.10</Version>
     </PackageReference>
-    <PackageReference Include="Xamarin.Forms">
-      <Version>5.0.0.2515</Version>
+    <PackageReference Include="DotNetForms">
+      <Version>5.0.0.2515--date20220830-0804.git-815160c</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
