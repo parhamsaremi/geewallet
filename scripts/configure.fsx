@@ -77,15 +77,6 @@ let initialConfigFile =
         Console.WriteLine "found"
         Map.empty.Add("MonoPkgConfigVersion", monoVersion)
 
-let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), NuGet.Restore.targets))\NuGet.Restore.targets"
-          Condition=" '$(NuGetRestoreImported)' != 'true' " />
-</Project>
-"""
-File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.core.sln.targets"),
-                  targetsFileToExecuteNugetBeforeBuild)
-
 let buildTool: string =
     match Misc.GuessPlatform() with
     | Misc.Platform.Linux | Misc.Platform.Mac ->
@@ -166,24 +157,7 @@ let lines =
     |> Seq.map toConfigFileLine
 File.AppendAllLines(buildConfigFile.FullName, lines |> Array.ofSeq)
 
-let version = Misc.GetCurrentVersion(rootDir)
 
 let repoInfo = Git.GetRepoInfo()
-
-Console.WriteLine()
-Console.WriteLine(sprintf
-                      "\tConfiguration summary for geewallet %s %s"
-                      (version.ToString()) repoInfo)
-Console.WriteLine()
-Console.WriteLine(sprintf
-                      "\t* Installation prefix: %s"
-                      prefix.FullName)
-Console.WriteLine(sprintf
-                      "\t* F# script runner: %s"
-                      fsxRunner)
-Console.WriteLine(sprintf
-                      "\t* .NET build tool: %s"
-                      buildTool)
-Console.WriteLine()
 
 Console.WriteLine "Configuration succeeded, you can now run `make`"

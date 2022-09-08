@@ -14,18 +14,10 @@ jobs:
     - uses: actions/checkout@v1
     - name: configure
       run: ./configure.sh
+    - name: restore
+      run: mkdir -p .nuget/ && cd .nuget/ && wget https://dist.nuget.org/win-x86-commandline/v5.4.0/nuget.exe && cd ..
     - name: build in DEBUG mode
       run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
 
   windows:
     runs-on: windows-latest
