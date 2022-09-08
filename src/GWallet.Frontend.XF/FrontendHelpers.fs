@@ -105,7 +105,7 @@ module FrontendHelpers =
         | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
     let UpdateBalance (balance: MaybeCached<decimal>) currency usdRate
-                      (maybeFrame: Option<Frame>) (balanceLabel: Label) (fiatBalanceLabel: Label)
+                      (maybeFrame: Option<Frame>)
                           : MaybeCached<decimal> =
         let maybeBalanceAmount =
             match balance with
@@ -130,10 +130,10 @@ module FrontendHelpers =
                 let cryptoAmountStr = SPrintF2 "%A %s" currency cryptoAmount
                 let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
                 cryptoAmountStr,fiatAmount,fiatAmountStr
-        Device.BeginInvokeOnMainThread(fun _ ->
-            balanceLabel.Text <- balanceAmountStr
-            fiatBalanceLabel.Text <- fiatAmountStr
-        )
+        // Device.BeginInvokeOnMainThread(fun _ ->
+        //     balanceLabel.Text <- balanceAmountStr
+        //     fiatBalanceLabel.Text <- fiatAmountStr
+        // )
         fiatAmount
 
     let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet)
@@ -154,8 +154,6 @@ module FrontendHelpers =
                               balanceSet.Account.Currency
                               usdRate
                               (Some balanceSet.Widgets.Frame)
-                              balanceSet.Widgets.CryptoLabel
-                              balanceSet.Widgets.FiatLabel
             return {
                 BalanceSet = balanceSet
                 FiatAmount = fiatAmount
@@ -182,8 +180,6 @@ module FrontendHelpers =
                                       balanceSet.Account.Currency
                                       usdRate
                                       (Some balanceSet.Widgets.Frame)
-                                      balanceSet.Widgets.CryptoLabel
-                                      balanceSet.Widgets.FiatLabel
                     return {
                         BalanceSet = balanceSet
                         FiatAmount = fiatAmount

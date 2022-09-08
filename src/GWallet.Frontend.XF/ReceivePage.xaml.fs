@@ -42,7 +42,7 @@ type ReceivePage(account: IAccount,
 
         let accountBalance =
             Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
-        FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency usdRate None balanceLabel fiatBalanceLabel
+        FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency usdRate None
             |> ignore
 
         // this below is for the case when a new ReceivePage() instance is suddenly created after sending a transaction
@@ -51,8 +51,6 @@ type ReceivePage(account: IAccount,
                                       account.Currency
                                       usdRate
                                       (Some balanceWidgetsFromBalancePage.Frame)
-                                      balanceWidgetsFromBalancePage.CryptoLabel
-                                      balanceWidgetsFromBalancePage.FiatLabel
             |> ignore
 
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize

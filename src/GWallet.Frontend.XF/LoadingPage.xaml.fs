@@ -108,6 +108,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
             let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
 
+            printfn "%A" allResolvedNormalAccountBalances
             keepAnimationTimerActive <- false
 
             let balancesPage () =
