@@ -92,15 +92,13 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
     member this.Transition(): unit =
-        let currencyImages = PreLoadCurrencyImages()
-
-        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
+        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts false
         let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
                                                                                 false
                                                                                 ServerSelectionMode.Fast
                                                                                 (Some progressBarLayout)
 
-        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
+        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts true
         let _,readOnlyAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
 
@@ -114,7 +112,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
             let balancesPage () =
                 BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
-                             currencyImages, false)
+                             Map.empty, false)
                     :> Page
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
         }
@@ -130,13 +128,13 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
             this.Transition()
 
-            Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
-                ShowLoadingText()
+            // Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
+            //     ShowLoadingText()
 
-                false // do not run timer again
-            )
+            //     false // do not run timer again
+            // )
         else
-            ShowLoadingText()
+            // ShowLoadingText()
 
             this.Transition()
 

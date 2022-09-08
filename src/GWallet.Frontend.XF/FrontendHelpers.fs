@@ -340,13 +340,12 @@ module FrontendHelpers =
         else
             normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
 
-    let CreateCurrencyBalanceFrame currency (cryptoLabel: Label) (fiatLabel: Label) currencyLogoImg classId =
+    let CreateCurrencyBalanceFrame currency (cryptoLabel: Label) (fiatLabel: Label) classId =
         let colorBoxWidth = 10.
 
         let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
                                       Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
 
-        stackLayout.Children.Add currencyLogoImg
         stackLayout.Children.Add cryptoLabel
         stackLayout.Children.Add fiatLabel
 
@@ -356,16 +355,16 @@ module FrontendHelpers =
         absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
         absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
 
-        if Device.RuntimePlatform = Device.GTK 
-            //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
-            || Device.RuntimePlatform = Device.macOS 
-            then
-            let bindImageSize bindableProperty =
-                let binding = Binding(Path = "Height", Source = cryptoLabel)
-                currencyLogoImg.SetBinding(bindableProperty, binding)
+        // if Device.RuntimePlatform = Device.GTK 
+        //     //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
+        //     || Device.RuntimePlatform = Device.macOS 
+        //     then
+        //     let bindImageSize bindableProperty =
+        //         let binding = Binding(Path = "Height", Source = cryptoLabel)
+        //         currencyLogoImg.SetBinding(bindableProperty, binding)
 
-            bindImageSize VisualElement.WidthRequestProperty
-            bindImageSize VisualElement.HeightRequestProperty
+        //     bindImageSize VisualElement.WidthRequestProperty
+        //     bindImageSize VisualElement.HeightRequestProperty
 
         let frame = Frame(HasShadow = false,
                           ClassId = classId,
@@ -374,23 +373,22 @@ module FrontendHelpers =
                           BorderColor = Color.SeaShell)
         frame
 
-    let private CreateWidgetsForAccount (currency: Currency) currencyLogoImg classId: BalanceWidgets =
+    let private CreateWidgetsForAccount (currency: Currency) classId: BalanceWidgets =
         let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start
         let fiatBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.EndAndExpand
 
         {
             CryptoLabel = accountBalanceLabel
             FiatLabel = fiatBalanceLabel
-            Frame = CreateCurrencyBalanceFrame currency accountBalanceLabel fiatBalanceLabel currencyLogoImg classId
+            Frame = CreateCurrencyBalanceFrame currency accountBalanceLabel fiatBalanceLabel classId
         }
 
-    let CreateWidgetsForAccounts(accounts: seq<IAccount>) (currencyImages: Map<Currency*bool,Image>) readOnly
+    let CreateWidgetsForAccounts(accounts: seq<IAccount>) readOnly
                                     : List<BalanceSet> =
         let classId,_ = GetActiveAndInactiveCurrencyClassIds readOnly
         seq {
             for account in accounts do
-                let currencyLogoImg = currencyImages.[(account.Currency,readOnly)]
-                let balanceWidgets = CreateWidgetsForAccount account.Currency currencyLogoImg classId
+                let balanceWidgets = CreateWidgetsForAccount account.Currency classId
                 yield {
                     Account = account;
                     Widgets = balanceWidgets

@@ -96,7 +96,7 @@ type PairingToPage(balancesPage: Page,
                     |> List.map (fun account -> account :> IAccount)
                 let readOnlyAccountsWithWidgets =
                     FrontendHelpers.CreateWidgetsForAccounts
-                        readOnlyAccounts currencyImages true
+                        readOnlyAccounts true
 
                 let _,readOnlyAccountsBalancesJob =
                     FrontendHelpers.UpdateBalancesAsync
