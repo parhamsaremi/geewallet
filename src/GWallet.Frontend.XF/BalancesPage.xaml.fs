@@ -241,7 +241,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 ) |> ignore
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
-                contentLayout.Children.Add frame
+                // contentLayout.Children.Add frame
 
         contentLayout.BatchCommit()
 
