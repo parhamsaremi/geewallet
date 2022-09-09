@@ -229,18 +229,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if activeCryptoBalances.Any() then
             for activeCryptoBalance in activeCryptoBalances do
                 activeCryptoBalance.IsVisible <- true
-        else
-            for balanceState in balances do
-                let balanceSet = balanceState.BalanceSet
-                let tapGestureRecognizer = TapGestureRecognizer()
-                tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                    let receivePage () =
-                        ReceivePage(balanceSet.Account, balanceState.UsdRate, this, balanceSet.Widgets)
-                            :> Page
-                    FrontendHelpers.SwitchToNewPage this receivePage true
-                ) |> ignore
-                let frame = balanceSet.Widgets.Frame
-                frame.GestureRecognizers.Add tapGestureRecognizer
 
         contentLayout.BatchCommit()
 
@@ -412,31 +400,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 this.AssignColorLabels switchingToReadOnly
                 this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
                 RedrawCircleView switchingToReadOnly balancesStatesToPopulate
-            else
-                // FIXME: save currentConnectivityInstance to cache at app startup, and if it has ever been connected to
-                // the internet, already consider it non-cold storage
-                let currentConnectivityInstance = Connectivity.NetworkAccess
-                if currentConnectivityInstance = NetworkAccess.Internet then
-                    let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
-                        BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
-                                     currencyImages, true) :> Page
-                    )
-                    let normalAccountsBalanceSets = normalAccountsBalanceSets
-                    let page () =
-                        PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
-                            :> Page
-                    FrontendHelpers.SwitchToNewPage this page false
-                else
-                    match Account.GetNormalAccountsPairingInfoForWatchWallet() with
-                    | None ->
-                        failwith "Should have ether and utxo accounts if running from the XF Frontend"
-                    | Some walletInfo ->
-                        let walletInfoJson = Marshalling.Serialize walletInfo
-                        let page () =
-                            PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
-                                :> Page
-                        FrontendHelpers.SwitchToNewPage this page true
-
         )
         currentChartView.BalanceFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer
