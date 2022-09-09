@@ -130,10 +130,6 @@ module FrontendHelpers =
                 let cryptoAmountStr = SPrintF2 "%A %s" currency cryptoAmount
                 let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
                 cryptoAmountStr,fiatAmount,fiatAmountStr
-        // Device.BeginInvokeOnMainThread(fun _ ->
-        //     balanceLabel.Text <- balanceAmountStr
-        //     fiatBalanceLabel.Text <- fiatAmountStr
-        // )
         fiatAmount
 
     let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet)
@@ -350,17 +346,6 @@ module FrontendHelpers =
         let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
         absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
         absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
-
-        // if Device.RuntimePlatform = Device.GTK 
-        //     //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
-        //     || Device.RuntimePlatform = Device.macOS 
-        //     then
-        //     let bindImageSize bindableProperty =
-        //         let binding = Binding(Path = "Height", Source = cryptoLabel)
-        //         currencyLogoImg.SetBinding(bindableProperty, binding)
-
-        //     bindImageSize VisualElement.WidthRequestProperty
-        //     bindImageSize VisualElement.HeightRequestProperty
 
         let frame = Frame(HasShadow = false,
                           ClassId = classId,
