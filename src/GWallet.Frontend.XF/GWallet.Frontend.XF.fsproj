@@ -103,14 +103,6 @@
       <DependentUpon>LoadingPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WelcomePage2.xaml.fs">
-      <DependentUpon>WelcomePage2.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="WelcomePage.xaml.fs">
-      <DependentUpon>WelcomePage.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Initialization.fs" />
     <Compile Include="App.xaml.fs">
       <DependentUpon>App.xaml</DependentUpon>
