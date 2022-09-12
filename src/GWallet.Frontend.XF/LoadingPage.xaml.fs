@@ -15,12 +15,6 @@ open GWallet.Backend
 /// </param>
 type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as this =
     inherit ContentPage()
-    let allAccounts = Account.GetAllActiveAccounts()
-    let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
-                         |> List.map (fun account -> account :> IAccount)
-    let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
-                           |> List.map (fun account -> account :> IAccount)
-
     do
         this.Init()
 
@@ -28,13 +22,13 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
     member this.Transition(): unit =
-        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts false
+        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts false
         let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
                                                                                 false
                                                                                 ServerSelectionMode.Fast
                                                                                 (None)
 
-        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts true
+        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts true
         let _,readOnlyAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
 

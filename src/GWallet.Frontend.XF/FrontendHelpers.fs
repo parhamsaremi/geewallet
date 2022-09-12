@@ -20,7 +20,6 @@ type BalanceWidgets =
     }
 
 type BalanceSet = {
-    Account: IAccount;
     Widgets: BalanceWidgets
 }
 
@@ -92,18 +91,7 @@ module FrontendHelpers =
                                                     defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
 
-    let internal GetCryptoColor(currency: Currency) =
-        match currency with
-        | Currency.BTC -> Color.FromRgb(245, 146, 47)
-
-        // looks very similar to BTC (orangish)... so let's use SAI color when we phase it out?
-        | Currency.DAI -> Color.FromRgb(250, 176, 28)
-
-        | Currency.SAI -> Color.FromRgb(254, 205, 83)
-        | Currency.ETC -> Color.FromRgb(14, 119, 52)
-        | Currency.ETH -> Color.FromRgb(130, 131, 132)
-        | Currency.LTC -> Color.FromRgb(54, 94, 155)
-
+    
     let UpdateBalance () : decimal =
 
         10.0m
@@ -122,35 +110,19 @@ module FrontendHelpers =
         }
 
     let UpdateBalanceAsync (balanceSet: BalanceSet)
-                           (tryCachedFirst: bool)
                            (mode: ServerSelectionMode)
                            (maybeProgressBar: Option<StackLayout>)
                                : CustomCancelSource*Async<BalanceState> =
         let cancelSource = new CustomCancelSource()
         let job = async {
-            if tryCachedFirst then
-                let cachedBalance = Caching.Instance.RetrieveLastCompoundBalance balanceSet.Account.PublicAddress
-                                                                                 balanceSet.Account.Currency
-                match cachedBalance with
-                | Cached _ ->
-                    return {
-                        BalanceSet = balanceSet
-                        FiatAmount = 10.0m
-                        ImminentIncomingPayment = None
-                        UsdRate = 10.0m
-                    }
-                | _ ->
-                    // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)
-                    return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
-            else
-                return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
+            return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
         }
         let fullJob =
             let UpdateProgressBar (progressBar: StackLayout) =
                 Device.BeginInvokeOnMainThread(fun _ ->
                     let firstTransparentFrameFound =
                         progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
-                    firstTransparentFrameFound.BackgroundColor <- GetCryptoColor balanceSet.Account.Currency
+                    firstTransparentFrameFound.BackgroundColor <- Color.FromRgb(245, 146, 47)
                 )
             async {
                 try
@@ -174,7 +146,7 @@ module FrontendHelpers =
                                 : seq<CustomCancelSource>*Async<array<BalanceState>> =
         let sourcesAndJobs = seq {
             for balanceSet in accountBalances do
-                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode progressBar
+                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet mode progressBar
                 yield cancelSource,balanceJob
         }
         let parallelJobs =
@@ -321,16 +293,14 @@ module FrontendHelpers =
             Frame = CreateCurrencyBalanceFrame accountBalanceLabel fiatBalanceLabel classId
         }
 
-    let CreateWidgetsForAccounts(accounts: seq<IAccount>) readOnly
+    let CreateWidgetsForAccounts readOnly
                                     : List<BalanceSet> =
         let classId,_ = GetActiveAndInactiveCurrencyClassIds readOnly
         seq {
-            for account in accounts do
-                let balanceWidgets = CreateWidgetsForAccount classId
-                yield {
-                    Account = account;
-                    Widgets = balanceWidgets
-                }
+            let balanceWidgets = CreateWidgetsForAccount classId
+            yield {
+                Widgets = balanceWidgets
+            }
         } |> List.ofSeq
 
     let BarCodeScanningOptions = MobileBarcodeScanningOptions(

@@ -110,7 +110,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let chartSourceList = 
             balances |> Seq.map (fun balanceState ->
                  { 
-                     Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency
+                     Color = Color.FromRgb(245, 146, 47)
                      Amount = 10.0m
                  }
             )
