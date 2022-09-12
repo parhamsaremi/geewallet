@@ -27,10 +27,8 @@ open GWallet.Scripting
 let UNIX_NAME = "geewallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
-let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
 let MAC_SOLUTION_FILE = "gwallet.mac.sln"
-let BACKEND = "GWallet.Backend"
 
 type Frontend =
     | Console
@@ -128,19 +126,6 @@ let RunNugetCommand (command: string) echoMode (safe: bool) =
     else
         Process.Execute (nugetCmd, echoMode)
 
-let PrintNugetVersion () =
-    if not (FsxHelper.NugetExe.Exists) then
-        false
-    else
-        let nugetProc = RunNugetCommand String.Empty Echo.Off false
-        Console.WriteLine nugetProc.Output.StdOut
-        if nugetProc.ExitCode = 0 then
-            true
-        else
-            Console.Error.WriteLine nugetProc.Output.StdErr
-            Console.WriteLine()
-            failwith "nuget process' output contained errors ^"
-
 let BuildSolution
     (buildTool: string)
     (solutionFileName: string)
@@ -172,7 +157,6 @@ let BuildSolution
     let buildProcess = Process.Execute ({ Command = buildTool; Arguments = buildArgs }, Echo.All)
     if (buildProcess.ExitCode <> 0) then
         Console.Error.WriteLine (sprintf "%s build failed" buildTool)
-        PrintNugetVersion() |> ignore
         Environment.Exit 1
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
@@ -181,12 +165,6 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
         failwith "A BuildTool should have been chosen by the configure script, please report this bug"
 
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
-    BuildSolution
-        buildTool.Value
-        DEFAULT_SOLUTION_FILE
-        binaryConfig
-        maybeConstant
-        String.Empty
 
     let frontend =
 
@@ -251,20 +229,12 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     File.WriteAllText (launcherScriptFile.FullName, wrapperScriptWithPaths)
     frontend,launcherScriptFile
 
-let MakeCheckCommand (commandName: string) =
-    if not (Process.CommandWorksInShell commandName) then
-        Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
-        Environment.Exit 1
-
 let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): DirectoryInfo*FileInfo =
     let frontendProjName = frontend.GetProjectName()
     let dir = Path.Combine (FsxHelper.RootDir.FullName, "src", frontendProjName, "bin", binaryConfig.ToString())
                   |> DirectoryInfo
     let mainExecFile = dir.GetFiles("*.exe", SearchOption.TopDirectoryOnly).Single()
     dir,mainExecFile
-
-let GetPathToBackend () =
-    Path.Combine (FsxHelper.RootDir.FullName, "src", BACKEND)
 
 let MakeAll (maybeConstant: Option<string>) =
     let buildConfig = BinaryConfig.Debug
@@ -294,186 +264,10 @@ match maybeTarget with
 | None ->
     MakeAll None |> ignore
 
-| Some("release") ->
-    JustBuild BinaryConfig.Release None
-        |> ignore
-
-| Some "nuget" ->
-    Console.WriteLine "This target is for debugging purposes."
-
-    if not (PrintNugetVersion()) then
-        Console.Error.WriteLine "Nuget executable has not been downloaded yet, try `make` alone first"
-        Environment.Exit 1
-
-| Some("zip") ->
-    let zipCommand = "zip"
-    MakeCheckCommand zipCommand
-
-    let version = (Misc.GetCurrentVersion FsxHelper.RootDir).ToString()
-
-    let release = BinaryConfig.Release
-    let frontend,script = JustBuild release None
-    let binDir = "bin"
-    Directory.CreateDirectory(binDir) |> ignore
-
-    let zipNameWithoutExtension = sprintf "%s-v%s" script.Name version
-    let zipName = sprintf "%s.zip" zipNameWithoutExtension
-    let pathToZip = Path.Combine(binDir, zipName)
-    if (File.Exists (pathToZip)) then
-        File.Delete (pathToZip)
-
-    let pathToFolderToBeZipped = Path.Combine(binDir, zipNameWithoutExtension)
-    if (Directory.Exists (pathToFolderToBeZipped)) then
-        Directory.Delete (pathToFolderToBeZipped, true)
-
-    let pathToFrontend,_ = GetPathToFrontend frontend release
-    let zipRun = Process.Execute({ Command = "cp"
-                                   Arguments = sprintf "-rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped },
-                                 Echo.All)
-    if (zipRun.ExitCode <> 0) then
-        Console.Error.WriteLine "Precopy for ZIP compression failed"
-        Environment.Exit 1
-
-    let previousCurrentDir = Directory.GetCurrentDirectory()
-    Directory.SetCurrentDirectory binDir
-    let zipLaunch = { Command = zipCommand
-                      Arguments = sprintf "%s -r %s %s"
-                                      zipCommand zipName zipNameWithoutExtension }
-    let zipRun = Process.Execute(zipLaunch, Echo.All)
-    if (zipRun.ExitCode <> 0) then
-        Console.Error.WriteLine "ZIP compression failed"
-        Environment.Exit 1
-    Directory.SetCurrentDirectory previousCurrentDir
-
-| Some("check") ->
-    Console.WriteLine "Running tests..."
-    Console.WriteLine ()
-
-    // so that we get file names in stack traces
-    Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
-
-    let testAssemblyName = "GWallet.Backend.Tests"
-    let testAssembly =
-        Path.Combine (
-            FsxHelper.RootDir.FullName,
-            "src",
-            testAssemblyName,
-            "bin",
-            testAssemblyName + ".dll"
-        ) |> FileInfo
-    if not testAssembly.Exists then
-        failwithf "File not found: %s" testAssembly.FullName
-
-    let runnerCommand =
-        match Misc.GuessPlatform() with
-        | Misc.Platform.Linux ->
-            let nunitCommand = "nunit-console"
-            MakeCheckCommand nunitCommand
-
-            { Command = nunitCommand; Arguments = testAssembly.FullName }
-        | _ ->
-            if not FsxHelper.NugetExe.Exists then
-                MakeAll None |> ignore
-
-            let nunitVersion = "2.7.1"
-            let installNUnitRunnerNugetCommand =
-                sprintf
-                    "install NUnit.Runners -Version %s -OutputDirectory %s"
-                    nunitVersion (FsxHelper.NugetScriptsPackagesDir().FullName)
-            RunNugetCommand installNUnitRunnerNugetCommand Echo.All true
-                |> ignore
-
-            {
-                Command = Path.Combine(FsxHelper.NugetScriptsPackagesDir().FullName,
-                                       sprintf "NUnit.Runners.%s" nunitVersion,
-                                       "tools",
-                                       "nunit-console.exe")
-                Arguments = testAssembly.FullName
-            }
-
-    let nunitRun = Process.Execute(runnerCommand,
-                                   Echo.All)
-    if (nunitRun.ExitCode <> 0) then
-        Console.Error.WriteLine "Tests failed"
-        Environment.Exit 1
-
-| Some("install") ->
-    let buildConfig = BinaryConfig.Release
-    let frontend,launcherScriptFile = JustBuild buildConfig None
-
-    let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(FsxHelper.RootDir.FullName,
-                                                                   "src",
-                                                                   frontend.GetProjectName(),
-                                                                   "bin",
-                                                                   binaryConfig.ToString()))
-
-
-    let destDirUpperCase = Environment.GetEnvironmentVariable "DESTDIR"
-    let destDirLowerCase = Environment.GetEnvironmentVariable "DestDir"
-    let destDir =
-        if not (String.IsNullOrEmpty destDirUpperCase) then
-            destDirUpperCase |> DirectoryInfo
-        elif not (String.IsNullOrEmpty destDirLowerCase) then
-            destDirLowerCase |> DirectoryInfo
-        else
-            prefix |> DirectoryInfo
-
-    let libDestDir = Path.Combine(destDir.FullName, "lib", UNIX_NAME) |> DirectoryInfo
-    let binDestDir = Path.Combine(destDir.FullName, "bin") |> DirectoryInfo
-
-    Console.WriteLine "Installing..."
-    Console.WriteLine ()
-    Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libDestDir, [])
-
-    let finalLauncherScriptInDestDir = Path.Combine(binDestDir.FullName, launcherScriptFile.Name) |> FileInfo
-    if not (Directory.Exists(finalLauncherScriptInDestDir.Directory.FullName)) then
-        Directory.CreateDirectory(finalLauncherScriptInDestDir.Directory.FullName) |> ignore
-    File.Copy(launcherScriptFile.FullName, finalLauncherScriptInDestDir.FullName, true)
-    if Process.Execute({ Command = "chmod"; Arguments = sprintf "ugo+x %s" finalLauncherScriptInDestDir.FullName },
-                        Echo.Off).ExitCode <> 0 then
-        failwith "Unexpected chmod failure, please report this bug"
-
 | Some("run") ->
     let frontend,buildConfig = MakeAll None
     RunFrontend frontend buildConfig None
         |> ignore
-
-| Some "update-servers" ->
-    let _,buildConfig = MakeAll None
-    Directory.SetCurrentDirectory (GetPathToBackend())
-    let proc1 = RunFrontend Frontend.Console buildConfig (Some "--update-servers-file")
-    if proc1.ExitCode <> 0 then
-        Environment.Exit proc1.ExitCode
-    else
-        let proc2 = RunFrontend Frontend.Console buildConfig (Some "--update-servers-stats")
-        Environment.Exit proc2.ExitCode
-
-| Some "strict" ->
-    MakeAll <| Some "STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME"
-        |> ignore
-
-| Some "sanitycheck" ->
-
-    if not FsxHelper.NugetExe.Exists then
-        MakeAll None |> ignore
-
-    let microsoftBuildLibVersion = "16.11.0"
-    let installMicrosoftBuildLibRunnerNugetCommand =
-        sprintf
-            "install Microsoft.Build -Version %s -OutputDirectory %s"
-            microsoftBuildLibVersion (FsxHelper.NugetScriptsPackagesDir().FullName)
-    RunNugetCommand installMicrosoftBuildLibRunnerNugetCommand Echo.All true
-        |> ignore
-
-    let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
-    Process.SafeExecute (
-        {
-            Command = FsxHelper.FsxRunner
-            Arguments = sanityCheckScript
-        },
-        Echo.All
-    )
-    |> ignore
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

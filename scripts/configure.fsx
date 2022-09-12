@@ -77,15 +77,6 @@ let initialConfigFile =
         Console.WriteLine "found"
         Map.empty.Add("MonoPkgConfigVersion", monoVersion)
 
-let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), NuGet.Restore.targets))\NuGet.Restore.targets"
-          Condition=" '$(NuGetRestoreImported)' != 'true' " />
-</Project>
-"""
-File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.core.sln.targets"),
-                  targetsFileToExecuteNugetBeforeBuild)
-
 let buildTool: string =
     match Misc.GuessPlatform() with
     | Misc.Platform.Linux | Misc.Platform.Mac ->

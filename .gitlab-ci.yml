@@ -23,6 +23,6 @@ newmono_build:
     - apt install -y libgtk2.0-cil-dev
 
     - ./configure.sh
+    - mkdir -p .nuget/ && cd .nuget/ && apt install --yes wget && wget https://dist.nuget.org/win-x86-commandline/v5.4.0/nuget.exe && cd ..
     - make
-    - make install
 
