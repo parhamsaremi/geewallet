@@ -44,9 +44,6 @@
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
   </Target>
   <ItemGroup>
-    <Content Include="..\GWallet.Frontend.Console\App.config">
-      <Link>App.config</Link>
-    </Content>
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
