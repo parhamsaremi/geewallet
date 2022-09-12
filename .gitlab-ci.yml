@@ -70,7 +70,6 @@ newmono_build:
     - ./configure.sh
     - make strict
     - make
-    - make sanitycheck
     - make install
     # so that we log the version of nuget for when it works
     - make nuget
