@@ -26,9 +26,9 @@ type BalanceSet = {
 
 type BalanceState = {
     BalanceSet: BalanceSet;
-    FiatAmount: MaybeCached<decimal>;
+    FiatAmount: decimal;
     ImminentIncomingPayment: Option<bool>;
-    UsdRate: MaybeCached<decimal>
+    UsdRate: decimal
 }
 
 module FrontendHelpers =
@@ -104,57 +104,20 @@ module FrontendHelpers =
         | Currency.ETH -> Color.FromRgb(130, 131, 132)
         | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
-    let UpdateBalance (balance: MaybeCached<decimal>) currency usdRate
-                      (maybeFrame: Option<Frame>)
-                          : MaybeCached<decimal> =
-        let maybeBalanceAmount =
-            match balance with
-            | NotFresh(NotAvailable) ->
-                None
-            | NotFresh(Cached(amount,_)) ->
-                Some amount
-            | Fresh(amount) ->
-                match maybeFrame, currency, amount with
-                | Some frame, Currency.SAI, 0m | Some frame, Currency.DAI, 0m ->
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        frame.IsVisible <- false
-                    )
-                | _ -> ()
-                Some amount
-        let balanceAmountStr,fiatAmount,fiatAmountStr =
-            match maybeBalanceAmount with
-            | None ->
-                SPrintF1 "%A (?)" currency, NotFresh(NotAvailable), SPrintF1 "(?) %s" defaultFiatCurrency
-            | Some balanceAmount ->
-                let cryptoAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto balanceAmount
-                let cryptoAmountStr = SPrintF2 "%A %s" currency cryptoAmount
-                let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
-                cryptoAmountStr,fiatAmount,fiatAmountStr
-        fiatAmount
+    let UpdateBalance () : decimal =
+
+        10.0m
 
     let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet)
                                        (mode: ServerSelectionMode)
                                        (cancelSource: CustomCancelSource)
                                            : Async<BalanceState> =
         async {
-            let balanceJob =
-                Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode (Some cancelSource)
-            let usdRateJob = FiatValueEstimation.UsdValue balanceSet.Account.Currency
-
-            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdRateJob
-            let! bothResults = bothJobs
-            let (balance,imminentIncomingPayment),usdRate = bothResults
-
-            let fiatAmount =
-                UpdateBalance balance
-                              balanceSet.Account.Currency
-                              usdRate
-                              (Some balanceSet.Widgets.Frame)
             return {
                 BalanceSet = balanceSet
-                FiatAmount = fiatAmount
-                ImminentIncomingPayment = imminentIncomingPayment
-                UsdRate = usdRate
+                FiatAmount = 10.0m
+                ImminentIncomingPayment = None
+                UsdRate = 10.0m
             }
         }
 
@@ -170,17 +133,11 @@ module FrontendHelpers =
                                                                                  balanceSet.Account.Currency
                 match cachedBalance with
                 | Cached _ ->
-                    let! usdRate = FiatValueEstimation.UsdValue balanceSet.Account.Currency
-                    let fiatAmount =
-                        UpdateBalance (NotFresh cachedBalance)
-                                      balanceSet.Account.Currency
-                                      usdRate
-                                      (Some balanceSet.Widgets.Frame)
                     return {
                         BalanceSet = balanceSet
-                        FiatAmount = fiatAmount
+                        FiatAmount = 10.0m
                         ImminentIncomingPayment = None
-                        UsdRate = usdRate
+                        UsdRate = 10.0m
                     }
                 | _ ->
                     // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)
@@ -332,7 +289,7 @@ module FrontendHelpers =
         else
             normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
 
-    let CreateCurrencyBalanceFrame currency (cryptoLabel: Label) (fiatLabel: Label) classId =
+    let CreateCurrencyBalanceFrame (cryptoLabel: Label) (fiatLabel: Label) classId =
         let colorBoxWidth = 10.
 
         let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
@@ -341,7 +298,7 @@ module FrontendHelpers =
         stackLayout.Children.Add cryptoLabel
         stackLayout.Children.Add fiatLabel
 
-        let colorBox = BoxView(Color = GetCryptoColor currency)
+        let colorBox = BoxView(Color = Color.FromRgb(245, 146, 47))
 
         let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
         absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
@@ -354,14 +311,14 @@ module FrontendHelpers =
                           BorderColor = Color.SeaShell)
         frame
 
-    let private CreateWidgetsForAccount (currency: Currency) classId: BalanceWidgets =
+    let private CreateWidgetsForAccount classId: BalanceWidgets =
         let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start
         let fiatBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.EndAndExpand
 
         {
             CryptoLabel = accountBalanceLabel
             FiatLabel = fiatBalanceLabel
-            Frame = CreateCurrencyBalanceFrame currency accountBalanceLabel fiatBalanceLabel classId
+            Frame = CreateCurrencyBalanceFrame accountBalanceLabel fiatBalanceLabel classId
         }
 
     let CreateWidgetsForAccounts(accounts: seq<IAccount>) readOnly
@@ -369,7 +326,7 @@ module FrontendHelpers =
         let classId,_ = GetActiveAndInactiveCurrencyClassIds readOnly
         seq {
             for account in accounts do
-                let balanceWidgets = CreateWidgetsForAccount account.Currency classId
+                let balanceWidgets = CreateWidgetsForAccount classId
                 yield {
                     Account = account;
                     Widgets = balanceWidgets
