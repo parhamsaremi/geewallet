@@ -99,10 +99,6 @@
       <DependentUpon>BalancesPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="LoadingPage.xaml.fs">
-      <DependentUpon>LoadingPage.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Initialization.fs" />
     <Compile Include="App.xaml.fs">
       <DependentUpon>App.xaml</DependentUpon>

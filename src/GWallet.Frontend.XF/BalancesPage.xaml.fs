@@ -183,73 +183,64 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
     member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
-                                            (balancesJob: Async<array<BalanceState>>)
+                                            (balancesJob: array<BalanceState>)
                                             fiatLabel
                                             (readOnly: bool)
-                                                : Async<Option<bool>> =
-        async {
-            let _,cancelSource = this.LastRefreshBalancesStamp
-            if cancelSource.IsCancellationRequested then
+                                                : Option<bool> =
+        
+        let _,cancelSource = this.LastRefreshBalancesStamp
+        if cancelSource.IsCancellationRequested then
 
-                // as in: we can't(NONE) know the answer to this because we're going to sleep
-                return None
+            // as in: we can't(NONE) know the answer to this because we're going to sleep
+            None
 
-            else
-                let! resolvedBalances = balancesJob
-                let fiatBalances = resolvedBalances.Select(fun balanceState ->
-                                                                     balanceState.FiatAmount)
-                                   |> List.ofSeq
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
-                    RedrawCircleView readOnly resolvedBalances
-                )
-                return resolvedBalances.Any(fun balanceState ->
+        else
+            let fiatBalances = balancesJob.Select(fun balanceState ->
+                                                                    balanceState.FiatAmount)
+                                |> List.ofSeq
+            Device.BeginInvokeOnMainThread(fun _ ->
+                this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
+                RedrawCircleView readOnly balancesJob
+            )
+            balancesJob.Any(fun balanceState ->
 
-                    // ".IsNone" means: we don't know if there's an incoming payment (absence of info)
-                    // so the whole `".IsNone" || "yes"` means: maybe there's an imminent incoming payment?
-                    // as in "it's false that we know for sure that there's no incoming payment"
-                    balanceState.ImminentIncomingPayment.IsNone ||
-                        Option.exists id balanceState.ImminentIncomingPayment
+                // ".IsNone" means: we don't know if there's an incoming payment (absence of info)
+                // so the whole `".IsNone" || "yes"` means: maybe there's an imminent incoming payment?
+                // as in "it's false that we know for sure that there's no incoming payment"
+                balanceState.ImminentIncomingPayment.IsNone ||
+                    Option.exists id balanceState.ImminentIncomingPayment
 
-                // we can(SOME) answer: either there's no incoming payment (false) or that maybe there is (true)
-                ) |> Some
-        }
+            // we can(SOME) answer: either there's no incoming payment (false) or that maybe there is (true)
+            ) |> Some
+        
 
     member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
         let refreshMode = ServerSelectionMode.Analysis
 
-        let readOnlyCancelSources,readOnlyBalancesJob =
+        let readOnlyBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalanceSets
-                                                false refreshMode
-                                                None
 
         let readOnlyAccountsBalanceUpdate =
             this.UpdateGlobalBalance state readOnlyBalancesJob readonlyChartView.BalanceLabel true
 
-        let allCancelSources,allBalanceUpdates =
+        let allBalanceUpdates =
             if (not onlyReadOnlyAccounts) then
 
-                let normalCancelSources,normalBalancesJob =
+                let normalBalancesJob =
                     FrontendHelpers.UpdateBalancesAsync normalAccountsBalanceSets
-                                                        false refreshMode
-                                                        None
 
                 let normalAccountsBalanceUpdate =
                     this.UpdateGlobalBalance state normalBalancesJob normalChartView.BalanceLabel false
 
-                let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
-
-                let allJobs = Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
-                Seq.append readOnlyCancelSources normalCancelSources,allJobs
+                let allJobs = [normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate]
+                allJobs
             else
-                readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
-                
-        this.BalanceRefreshCancelSources <- allCancelSources
+                [readOnlyAccountsBalanceUpdate]
 
         async {
             try
-                let! balanceUpdates = allBalanceUpdates
+                let balanceUpdates = allBalanceUpdates
                 if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
                     Option.exists id maybeImminentIncomingPayment
                 ) then
@@ -376,15 +367,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             balanceSet.Widgets.CryptoLabel.TextColor <- color
             balanceSet.Widgets.FiatLabel.TextColor <- color
 
-    member private this.CancelBalanceRefreshJobs() =
-        this.BalanceRefreshCancelSources
-            |> Seq.map (fun cancelSource ->
-                            cancelSource.Cancel()
-                            //TODO: dispose? now with CustomCancelSource it's not actually needed
-                       )
-            |> ignore
-        this.BalanceRefreshCancelSources <- Seq.empty
-
     member private this.Init () =
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
@@ -421,5 +403,4 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         state.GoneToSleep.Add (fun _ -> 
             this.StopTimer()
-            this.CancelBalanceRefreshJobs()
         )

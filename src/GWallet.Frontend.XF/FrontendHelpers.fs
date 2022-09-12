@@ -97,63 +97,28 @@ module FrontendHelpers =
         10.0m
 
     let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet)
-                                       (mode: ServerSelectionMode)
-                                       (cancelSource: CustomCancelSource)
-                                           : Async<BalanceState> =
-        async {
-            return {
-                BalanceSet = balanceSet
-                FiatAmount = 10.0m
-                ImminentIncomingPayment = None
-                UsdRate = 10.0m
-            }
+                                           : BalanceState =
+        {
+            BalanceSet = balanceSet
+            FiatAmount = 10.0m
+            ImminentIncomingPayment = None
+            UsdRate = 10.0m
         }
 
     let UpdateBalanceAsync (balanceSet: BalanceSet)
-                           (mode: ServerSelectionMode)
-                           (maybeProgressBar: Option<StackLayout>)
-                               : CustomCancelSource*Async<BalanceState> =
-        let cancelSource = new CustomCancelSource()
-        let job = async {
-            return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
-        }
-        let fullJob =
-            let UpdateProgressBar (progressBar: StackLayout) =
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    let firstTransparentFrameFound =
-                        progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
-                    firstTransparentFrameFound.BackgroundColor <- Color.FromRgb(245, 146, 47)
-                )
-            async {
-                try
-                    let! jobResult = job
-
-                    match maybeProgressBar with
-                    | Some progressBar ->
-                        UpdateProgressBar progressBar
-                    | None -> ()
-
-                    return jobResult
-                finally
-                    (cancelSource:>IDisposable).Dispose()
-            }
-        cancelSource,fullJob
+                               : BalanceState =
+        let job = UpdateBalanceWithoutCacheAsync balanceSet
+        
+        job
 
     let UpdateBalancesAsync accountBalances
-                            (tryCacheFirst: bool)
-                            (mode: ServerSelectionMode)
-                            (progressBar: Option<StackLayout>)
-                                : seq<CustomCancelSource>*Async<array<BalanceState>> =
+                                : array<BalanceState> =
         let sourcesAndJobs = seq {
             for balanceSet in accountBalances do
-                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet mode progressBar
-                yield cancelSource,balanceJob
-        }
-        let parallelJobs =
-            Seq.map snd sourcesAndJobs |> Async.Parallel
-        let allCancelSources =
-            Seq.map fst sourcesAndJobs
-        allCancelSources,parallelJobs
+                let balanceJob = UpdateBalanceAsync balanceSet
+                yield balanceJob
+        } 
+        sourcesAndJobs |> Seq.toArray
 
     let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
         let LastResortBail() =

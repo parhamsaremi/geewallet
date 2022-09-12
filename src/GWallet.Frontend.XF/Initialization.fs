@@ -15,10 +15,17 @@ module Initialization =
 
     let internal LandingPage(): NavigationPage =
         let state = GlobalInit ()
+        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts false
+        let allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
 
-        let accounts = Account.GetAllActiveAccounts()
+        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts true
+        let readOnlyAccountBalancesJob =
+            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances
+
         let landingPage:Page =
-            (LoadingPage (GlobalState, true)) :> Page
+            (BalancesPage(GlobalState, allNormalAccountBalancesJob, readOnlyAccountBalancesJob,
+            Map.empty, false))
+                :> Page
 
         let navPage = NavigationPage landingPage
         NavigationPage.SetHasNavigationBar(landingPage, false)
