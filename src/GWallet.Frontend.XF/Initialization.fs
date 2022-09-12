@@ -4,17 +4,12 @@ open System.Linq
 
 open Xamarin.Forms
 
-open GWallet.Backend
 
 module Initialization =
 
     let internal GlobalState = GlobalState()
 
-    let private GlobalInit () =
-        Infrastructure.SetupExceptionHook ()
-
     let internal LandingPage(): NavigationPage =
-        let state = GlobalInit ()
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts false
         let allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
 
@@ -23,8 +18,7 @@ module Initialization =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances
 
         let landingPage:Page =
-            (BalancesPage(GlobalState, allNormalAccountBalancesJob, readOnlyAccountBalancesJob,
-            Map.empty, false))
+            (BalancesPage(GlobalState, allNormalAccountBalancesJob, readOnlyAccountBalancesJob,false))
                 :> Page
 
         let navPage = NavigationPage landingPage

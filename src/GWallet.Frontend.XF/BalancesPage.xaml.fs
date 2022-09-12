@@ -10,9 +10,6 @@ open Xamarin.Forms.Xaml
 open Xamarin.Essentials
 
 open GWallet.Frontend.XF.Controls
-open GWallet.Backend
-open GWallet.Backend.FSharpUtil.UwpHacks
-
 
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
 // be because all ETC servers are unresponsive), then it means we have AT LEAST 3LTC; as opposed to when we know for
@@ -27,10 +24,10 @@ type TotalBalance =
     static member (+) (x: decimal, y: TotalBalance) =
         y + x
 
+
 type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                   normalBalanceStates: seq<BalanceState>,
                   readOnlyBalanceStates: seq<BalanceState>,
-                  currencyImages: Map<Currency*bool,Image>,
                   startWithReadOnlyAccounts: bool)
                       as this =
     inherit ContentPage()
@@ -49,10 +46,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let timerStartDelay = TimeSpan.FromMilliseconds 500.
 
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
+       
     let UpdateGlobalFiatBalanceLabel (balance: decimal) (totalFiatAmountLabel: Label) =
         let strBalance =
-            SPrintF1 "~ %s USD" (Formatting.DecimalAmountRounding CurrencyType.Fiat balance)
-
+            sprintf "~ %s USD" (balance.ToString())
         totalFiatAmountLabel.Text <- strBalance
 
     let rec UpdateGlobalFiatBalance (acc: Option<decimal>)
@@ -93,13 +90,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             | _ ->
                 FindCryptoBalances cryptoBalanceClassId layout tail resultsSoFar
 
-    let GetAmountOrDefault maybeAmount =
-        match maybeAmount with
-        | NotFresh NotAvailable ->
-            0m
-        | Fresh amount | NotFresh (Cached (amount,_)) ->
-            amount
-
     let RedrawCircleView (readOnly: bool) (balances: seq<BalanceState>) =
         let chartView =
             if readOnly then
@@ -136,7 +126,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
-                         Map.empty,false)
+                         false)
 
     member private this.LastRefreshBalancesStamp
         with get() = lock lockObject (fun _ -> lastRefreshBalancesStamp)
@@ -188,36 +178,27 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             (readOnly: bool)
                                                 : Option<bool> =
         
-        let _,cancelSource = this.LastRefreshBalancesStamp
-        if cancelSource.IsCancellationRequested then
+        let fiatBalances = balancesJob.Select(fun balanceState ->
+                                                                balanceState.FiatAmount)
+                            |> List.ofSeq
+        Device.BeginInvokeOnMainThread(fun _ ->
+            this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
+            RedrawCircleView readOnly balancesJob
+        )
+        balancesJob.Any(fun balanceState ->
 
-            // as in: we can't(NONE) know the answer to this because we're going to sleep
-            None
+            // ".IsNone" means: we don't know if there's an incoming payment (absence of info)
+            // so the whole `".IsNone" || "yes"` means: maybe there's an imminent incoming payment?
+            // as in "it's false that we know for sure that there's no incoming payment"
+            balanceState.ImminentIncomingPayment.IsNone ||
+                Option.exists id balanceState.ImminentIncomingPayment
 
-        else
-            let fiatBalances = balancesJob.Select(fun balanceState ->
-                                                                    balanceState.FiatAmount)
-                                |> List.ofSeq
-            Device.BeginInvokeOnMainThread(fun _ ->
-                this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
-                RedrawCircleView readOnly balancesJob
-            )
-            balancesJob.Any(fun balanceState ->
-
-                // ".IsNone" means: we don't know if there's an incoming payment (absence of info)
-                // so the whole `".IsNone" || "yes"` means: maybe there's an imminent incoming payment?
-                // as in "it's false that we know for sure that there's no incoming payment"
-                balanceState.ImminentIncomingPayment.IsNone ||
-                    Option.exists id balanceState.ImminentIncomingPayment
-
-            // we can(SOME) answer: either there's no incoming payment (false) or that maybe there is (true)
-            ) |> Some
+        // we can(SOME) answer: either there's no incoming payment (false) or that maybe there is (true)
+        ) |> Some
         
 
     member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
-        let refreshMode = ServerSelectionMode.Analysis
-
         let readOnlyBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalanceSets
 
@@ -239,20 +220,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 [readOnlyAccountsBalanceUpdate]
 
         async {
-            try
-                let balanceUpdates = allBalanceUpdates
-                if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
-                    Option.exists id maybeImminentIncomingPayment
-                ) then
-                    this.NoImminentIncomingPayment <- false
-                elif (not onlyReadOnlyAccounts) &&
-                      balanceUpdates.All(fun maybeImminentIncomingPayment ->
-                    Option.exists not maybeImminentIncomingPayment
-                ) then
-                    this.NoImminentIncomingPayment <- true
-            with
-            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                ()
+            let balanceUpdates = allBalanceUpdates
+            if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
+                Option.exists id maybeImminentIncomingPayment
+            ) then
+                this.NoImminentIncomingPayment <- false
+            elif (not onlyReadOnlyAccounts) &&
+                    balanceUpdates.All(fun maybeImminentIncomingPayment ->
+                Option.exists not maybeImminentIncomingPayment
+            ) then
+                this.NoImminentIncomingPayment <- true
         }
 
     member private this.StartTimer(): unit =

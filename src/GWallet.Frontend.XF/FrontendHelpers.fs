@@ -9,8 +9,6 @@ open Xamarin.Forms
 open ZXing
 open ZXing.Mobile
 
-open GWallet.Backend
-open GWallet.Backend.FSharpUtil.UwpHacks
 
 type BalanceWidgets =
     {
@@ -59,7 +57,7 @@ module FrontendHelpers =
 
     let private defaultFiatCurrency = "USD"
 
-    let internal ExchangeRateUnreachableMsg = SPrintF1 " (~ ? %s)" defaultFiatCurrency
+    let internal ExchangeRateUnreachableMsg = sprintf " (~ ? %s)" defaultFiatCurrency
 
     //FIXME: right now the UI doesn't explain what the below element means when it shows it, we should add a legend...
     let internal ExchangeOutdatedVisualElement = "*"
@@ -74,23 +72,13 @@ module FrontendHelpers =
             String.Empty
 
     // FIXME: share code between Frontend.Console and Frontend.XF
-    let BalanceInUsdString (balance: decimal) (maybeUsdValue: MaybeCached<decimal>)
-                               : MaybeCached<decimal>*string =
-        match maybeUsdValue with
-        | NotFresh(NotAvailable) ->
-            NotFresh(NotAvailable),ExchangeRateUnreachableMsg
-        | Fresh(usdValue) ->
-            let fiatBalance = usdValue * balance
-            Fresh(fiatBalance),SPrintF2 "~ %s %s"
-                                   (Formatting.DecimalAmountRounding CurrencyType.Fiat fiatBalance)
-                                   defaultFiatCurrency
-        | NotFresh(Cached(usdValue,time)) ->
-            let fiatBalance = usdValue * balance
-            NotFresh(Cached(fiatBalance,time)),SPrintF3 "~ %s %s%s"
-                                                    (Formatting.DecimalAmountRounding CurrencyType.Fiat fiatBalance)
-                                                    defaultFiatCurrency
-                                                    (MaybeReturnOutdatedMarkForOldDate time)
-
+    let BalanceInUsdString (balance: decimal) (maybeUsdValue: decimal)
+                               : decimal*string =
+        
+        let fiatBalance = maybeUsdValue * balance
+        fiatBalance,sprintf "~ %s %s"
+                                (fiatBalance.ToString())
+                                defaultFiatCurrency
     
     let UpdateBalance () : decimal =
 
@@ -123,8 +111,6 @@ module FrontendHelpers =
     let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
         let LastResortBail() =
             // this is just in case the raise(throw) doesn't really tear down the program:
-            Infrastructure.LogError ("FATAL PROBLEM: " + ex.ToString())
-            Infrastructure.LogError "MANUAL FORCED SHUTDOWN NOW"
             Device.PlatformServices.QuitApplication()
 
         if null = ex then
@@ -133,8 +119,6 @@ module FrontendHelpers =
             let shouldCrash =
                 if not canBeCanceled then
                     true
-                elif (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                    false
                 else
                     true
             if shouldCrash then
@@ -281,15 +265,15 @@ module FrontendHelpers =
     let GetImageSource name =
         let thisAssembly = typeof<BalanceState>.Assembly
         let thisAssemblyName = thisAssembly.GetName().Name
-        let fullyQualifiedResourceNameForLogo = SPrintF2 "%s.img.%s.png"
+        let fullyQualifiedResourceNameForLogo = sprintf "%s.img.%s.png"
                                                         thisAssemblyName name
         ImageSource.FromResource(fullyQualifiedResourceNameForLogo, thisAssembly)
 
     let GetSizedImageSource name size =
-        let sizedName = SPrintF3 "%s_%ix%i" name size size
+        let sizedName = sprintf "%s_%ix%i" name size size
         GetImageSource sizedName
 
     let GetSizedColoredImageSource name color size =
-        let sizedColoredName = SPrintF2 "%s_%s" name color
+        let sizedColoredName = sprintf "%s_%s" name color
         GetSizedImageSource sizedColoredName size
 
