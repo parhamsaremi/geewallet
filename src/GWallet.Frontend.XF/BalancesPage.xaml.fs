@@ -3,11 +3,9 @@
 open System
 open System.Linq
 open System.Threading
-open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
-open Xamarin.Essentials
 
 open GWallet.Frontend.XF.Controls
 
@@ -40,10 +38,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
     let normalChartView = base.FindByName<HoopChartView> "normalChartView"
     let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
-
-    let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
-    let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
-    let timerStartDelay = TimeSpan.FromMilliseconds 500.
 
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
        
@@ -106,18 +100,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             )
         chartView.SegmentsSource <- chartSourceList
 
-    let GetBaseRefreshInterval() =
-        if this.NoImminentIncomingPayment then
-            standardTimeToRefreshBalances
-        else
-            standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow
-
-    let mutable lastRefreshBalancesStamp = DateTime.UtcNow,new CancellationTokenSource()
-
     // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
     let mutable noImminentIncomingPayment = false
-
-    let mutable balanceRefreshCancelSources = Seq.empty
 
     let lockObject = Object()
 
@@ -128,17 +112,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
                          false)
 
-    member private this.LastRefreshBalancesStamp
-        with get() = lock lockObject (fun _ -> lastRefreshBalancesStamp)
-        and set value = lock lockObject (fun _ -> lastRefreshBalancesStamp <- value)
-        
     member private this.NoImminentIncomingPayment
         with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
-
-    member private this.BalanceRefreshCancelSources
-        with get() = lock lockObject (fun _ -> balanceRefreshCancelSources |> List.ofSeq :> seq<_>)
-         and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
         let activeCurrencyClassId,inactiveCurrencyClassId =
@@ -232,53 +208,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 this.NoImminentIncomingPayment <- true
         }
 
-    member private this.StartTimer(): unit =
-        let prevRefreshTime,_ = this.LastRefreshBalancesStamp
-        let cancelSource = new CancellationTokenSource()
-        let cancellationToken = cancelSource.Token
-        // FIXME: should we dispose the previous cancellationSource before re-assigning a new one below?
-        this.LastRefreshBalancesStamp <- prevRefreshTime,cancelSource
-
-        let refreshesDiff = DateTime.UtcNow - prevRefreshTime
-        let shiftedRefreshDiff =
-            if refreshesDiff > TimeSpan.Zero then
-                refreshesDiff
-            else
-                TimeSpan.Zero
-
-        let baseRefreshInterval = GetBaseRefreshInterval()
-        let refreshInterval = baseRefreshInterval - shiftedRefreshDiff
-        let timerInterval =
-            if refreshInterval > TimeSpan.Zero then
-                refreshInterval
-            else
-                //Avoid cases when user changes timezone in device settings
-                TimeSpan.Zero
-                
-        Device.StartTimer(timerInterval + timerStartDelay, fun _ ->
-            if not cancellationToken.IsCancellationRequested then
-                async {
-                    try
-                        cancellationToken.ThrowIfCancellationRequested()
-                        do! this.RefreshBalances false
-                        cancellationToken.ThrowIfCancellationRequested()
-                        this.LastRefreshBalancesStamp <- DateTime.UtcNow,cancelSource
-                        this.StartTimer()
-                    with
-                    | :? OperationCanceledException as oce ->
-                        raise <| TaskCanceledException("Refresh aborted", oce)
-
-                } |> FrontendHelpers.DoubleCheckCompletionAsync true
-
-            false // do not run timer again (the this.StartTimer call above will re-set it up)
-        )
-
-    member private this.StopTimer() =
-        let _,cancelSource = this.LastRefreshBalancesStamp
-        if not cancelSource.IsCancellationRequested then
-            cancelSource.Cancel()
-            cancelSource.Dispose()
-
     member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
         let currentChartViewName,otherChartViewName =
             if readOnly then
@@ -365,10 +294,5 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         )
 
         this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync false
-        this.StartTimer()
+        this.RefreshBalances false |> FrontendHelpers.DoubleCheckCompletionAsync false
 
-        state.Resumed.Add (fun _ -> this.StartTimer())
-
-        state.GoneToSleep.Add (fun _ -> 
-            this.StopTimer()
-        )
