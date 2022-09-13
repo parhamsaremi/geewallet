@@ -46,27 +46,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             sprintf "~ %s USD" (balance.ToString())
         totalFiatAmountLabel.Text <- strBalance
 
-    let rec UpdateGlobalFiatBalance (acc: Option<decimal>)
-                                    (fiatBalances: List<decimal>)
-                                    totalFiatAmountLabel
+    let rec UpdateGlobalFiatBalance totalFiatAmountLabel
                                         : unit =
-        let updateGlobalFiatBalanceFromFreshAcc accAmount head tail =
-            UpdateGlobalFiatBalanceLabel accAmount totalFiatAmountLabel
-
-        match acc with
-        | None ->
-            match fiatBalances with
-            | [] ->
-                failwith "unexpected: accumulator should be Some(thing) or coming balances shouldn't be List.empty"
-            | head::tail ->
-                let accAmount = 0.0m
-                updateGlobalFiatBalanceFromFreshAcc accAmount head tail
-        | Some(accAmount) ->
-            match fiatBalances with
-            | [] ->
-                UpdateGlobalFiatBalanceLabel accAmount totalFiatAmountLabel
-            | head::tail ->
-                updateGlobalFiatBalanceFromFreshAcc accAmount head tail
+        UpdateGlobalFiatBalanceLabel 0m totalFiatAmountLabel
         
     let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
                                (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
@@ -136,33 +118,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         contentLayout.BatchCommit()
 
-    member this.UpdateGlobalFiatBalanceSum (fiatBalancesList: List<decimal>) totalFiatAmountLabel =
-        if fiatBalancesList.Any() then
-            UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
-
     member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
-                                            (balancesJob: array<BalanceState>)
                                             fiatLabel
                                             (readOnly: bool)
                                                 : Option<bool> =
         
-        let fiatBalances = balancesJob.Select(fun balanceState ->
-                                                                balanceState.FiatAmount)
-                            |> List.ofSeq
         Device.BeginInvokeOnMainThread(fun _ ->
-            this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
+            UpdateGlobalFiatBalance fiatLabel
             RedrawCircleView readOnly
         )
-        balancesJob.Any(fun balanceState ->
-
-            // ".IsNone" means: we don't know if there's an incoming payment (absence of info)
-            // so the whole `".IsNone" || "yes"` means: maybe there's an imminent incoming payment?
-            // as in "it's false that we know for sure that there's no incoming payment"
-            balanceState.ImminentIncomingPayment.IsNone ||
-                Option.exists id balanceState.ImminentIncomingPayment
-
-        // we can(SOME) answer: either there's no incoming payment (false) or that maybe there is (true)
-        ) |> Some
+        None
         
 
     member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
@@ -171,34 +136,19 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalanceSets
 
         let readOnlyAccountsBalanceUpdate =
-            this.UpdateGlobalBalance state readOnlyBalancesJob readonlyChartView.BalanceLabel true
+            this.UpdateGlobalBalance state readonlyChartView.BalanceLabel true
 
         let allBalanceUpdates =
             if (not onlyReadOnlyAccounts) then
 
-                let normalBalancesJob =
-                    FrontendHelpers.UpdateBalancesAsync normalAccountsBalanceSets
-
                 let normalAccountsBalanceUpdate =
-                    this.UpdateGlobalBalance state normalBalancesJob normalChartView.BalanceLabel false
+                    this.UpdateGlobalBalance state normalChartView.BalanceLabel false
 
                 let allJobs = [normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate]
                 allJobs
             else
                 [readOnlyAccountsBalanceUpdate]
-
-        async {
-            let balanceUpdates = allBalanceUpdates
-            if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
-                Option.exists id maybeImminentIncomingPayment
-            ) then
-                this.NoImminentIncomingPayment <- false
-            elif (not onlyReadOnlyAccounts) &&
-                    balanceUpdates.All(fun maybeImminentIncomingPayment ->
-                Option.exists not maybeImminentIncomingPayment
-            ) then
-                this.NoImminentIncomingPayment <- true
-        }
+        ()
 
     member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
         let currentChartViewName,otherChartViewName =
@@ -278,10 +228,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             this.PopulateGridInitially ()
 
-            this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances normalChartView.BalanceLabel
-            this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances readonlyChartView.BalanceLabel
+            UpdateGlobalFiatBalance normalChartView.BalanceLabel
+            UpdateGlobalFiatBalance readonlyChartView.BalanceLabel
         )
 
-        this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync false
-        this.RefreshBalances false |> FrontendHelpers.DoubleCheckCompletionAsync false
+        this.RefreshBalances true
+        this.RefreshBalances false
 

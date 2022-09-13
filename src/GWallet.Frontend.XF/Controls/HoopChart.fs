@@ -108,15 +108,6 @@ type HoopChartView() =
             
         hoop.Layout bounds
 
-    override this.OnMeasure(widthConstraint, heightConstraint) =
-        let smallerRequestedSize = min widthConstraint heightConstraint |> min this.MinimumChartSize
-        let minSize =   
-            let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
-            let factor = 1.1 // to add som visual space between label and chart
-            (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * factor
-        let sizeToRequest = max smallerRequestedSize minSize
-        SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
-    
     // Updates
     member this.SetState() =
         this.Children.Clear()

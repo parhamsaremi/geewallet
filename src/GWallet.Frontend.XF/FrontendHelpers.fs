@@ -65,12 +65,6 @@ module FrontendHelpers =
     // these days cryptos are not so volatile, so 30mins should be good...
     let internal TimeSpanToConsiderExchangeRateOutdated = TimeSpan.FromMinutes 30.0
 
-    let MaybeReturnOutdatedMarkForOldDate (date: DateTime) =
-        if (date + TimeSpanToConsiderExchangeRateOutdated < DateTime.UtcNow) then
-            ExchangeOutdatedVisualElement
-        else
-            String.Empty
-
     // FIXME: share code between Frontend.Console and Frontend.XF
     let BalanceInUsdString (balance: decimal) (maybeUsdValue: decimal)
                                : decimal*string =
@@ -81,7 +75,6 @@ module FrontendHelpers =
                                 defaultFiatCurrency
     
     let UpdateBalance () : decimal =
-
         10.0m
 
     let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet)
@@ -107,94 +100,6 @@ module FrontendHelpers =
                 yield balanceJob
         } 
         sourcesAndJobs |> Seq.toArray
-
-    let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
-        let LastResortBail() =
-            // this is just in case the raise(throw) doesn't really tear down the program:
-            Device.PlatformServices.QuitApplication()
-
-        if null = ex then
-            ()
-        else
-            let shouldCrash =
-                if not canBeCanceled then
-                    true
-                else
-                    true
-            if shouldCrash then
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    raise ex
-                    LastResortBail()
-                )
-                raise ex
-                LastResortBail()
-
-    // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,
-    // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored
-    let DoubleCheckCompletion<'T> (task: Task<'T>) =
-        task.ContinueWith(fun (t: Task<'T>) ->
-            MaybeCrash false t.Exception
-        , TaskContinuationOptions.OnlyOnFaulted) |> ignore
-    let DoubleCheckCompletionNonGeneric (task: Task) =
-        task.ContinueWith(fun (t: Task) ->
-            MaybeCrash false t.Exception
-        , TaskContinuationOptions.OnlyOnFaulted) |> ignore
-
-    let DoubleCheckCompletionAsync<'T> (canBeCanceled: bool) (work: Async<'T>): unit =
-        async {
-            try
-                let! _ = work
-                ()
-            with
-            | ex ->
-                MaybeCrash canBeCanceled ex
-            return ()
-        } |> Async.Start
-
-    let SwitchToNewPage (currentPage: Page) (createNewPage: unit -> Page) (navBar: bool): unit =
-        Device.BeginInvokeOnMainThread(fun _ ->
-            let newPage = createNewPage ()
-            NavigationPage.SetHasNavigationBar(newPage, false)
-            let navPage = NavigationPage newPage
-            NavigationPage.SetHasNavigationBar(navPage, navBar)
-
-            currentPage.Navigation.PushAsync navPage
-                |> DoubleCheckCompletionNonGeneric
-        )
-
-    let SwitchToNewPageDiscardingCurrentOne (currentPage: Page) (createNewPage: unit -> Page): unit =
-        Device.BeginInvokeOnMainThread(fun _ ->
-            let newPage = createNewPage ()
-            NavigationPage.SetHasNavigationBar(newPage, false)
-
-            currentPage.Navigation.InsertPageBefore(newPage, currentPage)
-            currentPage.Navigation.PopAsync()
-                |> DoubleCheckCompletion
-        )
-
-    let SwitchToNewPageDiscardingCurrentOneAsync (currentPage: Page) (createNewPage: unit -> Page) =
-        async {
-            let newPage = createNewPage ()
-            NavigationPage.SetHasNavigationBar(newPage, false)
-
-            currentPage.Navigation.InsertPageBefore(newPage, currentPage)
-            let! _ =
-                currentPage.Navigation.PopAsync()
-                |> Async.AwaitTask
-            return ()
-        }
-
-    let ChangeTextAndChangeBack (button: Button) (newText: string) =
-        let initialText = button.Text
-        button.IsEnabled <- false
-        button.Text <- newText
-        Task.Run(fun _ ->
-            Task.Delay(TimeSpan.FromSeconds(2.0)).Wait()
-            Device.BeginInvokeOnMainThread(fun _ ->
-                button.Text <- initialText
-                button.IsEnabled <- true
-            )
-        ) |> DoubleCheckCompletionNonGeneric
 
     let private CreateLabelWidgetForAccount horizontalOptions =
         let label = Label(Text = "...",
@@ -251,29 +156,3 @@ module FrontendHelpers =
                 Widgets = balanceWidgets
             }
         } |> List.ofSeq
-
-    let BarCodeScanningOptions = MobileBarcodeScanningOptions(
-                                     TryHarder = Nullable<bool> true,
-                                     DisableAutofocus = false,
-                                     // TODO: stop using Sys.Coll.Gen when this PR is accepted: https://github.com/Redth/ZXing.Net.Mobile/pull/800
-                                     PossibleFormats = System.Collections.Generic.List<BarcodeFormat>(
-                                         [ BarcodeFormat.QR_CODE ]
-                                     ),
-                                     UseNativeScanning = true
-                                 )
-
-    let GetImageSource name =
-        let thisAssembly = typeof<BalanceState>.Assembly
-        let thisAssemblyName = thisAssembly.GetName().Name
-        let fullyQualifiedResourceNameForLogo = sprintf "%s.img.%s.png"
-                                                        thisAssemblyName name
-        ImageSource.FromResource(fullyQualifiedResourceNameForLogo, thisAssembly)
-
-    let GetSizedImageSource name size =
-        let sizedName = sprintf "%s_%ix%i" name size size
-        GetImageSource sizedName
-
-    let GetSizedColoredImageSource name color size =
-        let sizedColoredName = sprintf "%s_%s" name color
-        GetSizedImageSource sizedColoredName size
-
