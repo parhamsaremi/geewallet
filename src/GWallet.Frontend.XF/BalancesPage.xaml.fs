@@ -35,7 +35,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
     let readOnlyAccountsBalanceSets = readOnlyBalanceStates.Select(fun balState -> balState.BalanceSet)
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let contentLayout = base.FindByName<StackLayout> "contentLayout"
     let normalChartView = base.FindByName<HoopChartView> "normalChartView"
     let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
 
@@ -50,21 +49,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                         : unit =
         UpdateGlobalFiatBalanceLabel 0m totalFiatAmountLabel
         
-    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
-                               (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
-        match elements with
-        | [] -> resultsSoFar
-        | head::tail ->
-            match head with
-            | :? Frame as frame ->
-                let newResults =
-                    if frame.ClassId = cryptoBalanceClassId then
-                        frame::resultsSoFar
-                    else
-                        resultsSoFar
-                FindCryptoBalances cryptoBalanceClassId layout tail newResults
-            | _ ->
-                FindCryptoBalances cryptoBalanceClassId layout tail resultsSoFar
 
     let RedrawCircleView (readOnly: bool) =
         let chartView =
@@ -90,34 +74,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
 
-    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
-        let activeCurrencyClassId,inactiveCurrencyClassId =
-            FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
-
-        let contentLayoutChildrenList = (contentLayout.Children |> List.ofSeq)
-
-        let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
-                                                      contentLayout 
-                                                      contentLayoutChildrenList
-                                                      List.Empty
-
-        let inactiveCryptoBalances = FindCryptoBalances inactiveCurrencyClassId 
-                                                        contentLayout 
-                                                        contentLayoutChildrenList
-                                                        List.Empty
-
-        contentLayout.BatchBegin()                      
-
-        for inactiveCryptoBalance in inactiveCryptoBalances do
-            inactiveCryptoBalance.IsVisible <- false
-
-        //We should create new frames only once, then just play with IsVisible(True|False) 
-        if activeCryptoBalances.Any() then
-            for activeCryptoBalance in activeCryptoBalances do
-                activeCryptoBalance.IsVisible <- true
-
-        contentLayout.BatchCommit()
-
     member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
                                             fiatLabel
                                             (readOnly: bool)
@@ -132,22 +88,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
-        let readOnlyBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalanceSets
 
-        let readOnlyAccountsBalanceUpdate =
-            this.UpdateGlobalBalance state readonlyChartView.BalanceLabel true
+        this.UpdateGlobalBalance state readonlyChartView.BalanceLabel true |> ignore
 
-        let allBalanceUpdates =
-            if (not onlyReadOnlyAccounts) then
-
-                let normalAccountsBalanceUpdate =
-                    this.UpdateGlobalBalance state normalChartView.BalanceLabel false
-
-                let allJobs = [normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate]
-                allJobs
-            else
-                [readOnlyAccountsBalanceUpdate]
+        if (not onlyReadOnlyAccounts) then
+            this.UpdateGlobalBalance state normalChartView.BalanceLabel false |> ignore
         ()
 
     member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
@@ -177,13 +122,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     currentChartView.IsVisible <- false
                     otherChartView.IsVisible <- true
                 )
-                let balancesStatesToPopulate =
-                    if switchingToReadOnly then
-                        readOnlyBalanceStates
-                    else
-                        normalBalanceStates
                 this.AssignColorLabels switchingToReadOnly
-                this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
                 RedrawCircleView switchingToReadOnly
         )
         currentChartView.BalanceFrame.GestureRecognizers.Add tapGestureRecognizer
@@ -194,7 +133,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let tapper = this.ConfigureFiatAmountFrame false
         this.ConfigureFiatAmountFrame true |> ignore
 
-        this.PopulateBalances false normalBalanceStates
         RedrawCircleView false
 
         if startWithReadOnlyAccounts then
@@ -216,11 +154,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             balanceSet.Widgets.FiatLabel.TextColor <- color
 
     member private this.Init () =
-        let allNormalAccountFiatBalances =
-            normalBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
-        let allReadOnlyAccountFiatBalances =
-            readOnlyBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
-
         Device.BeginInvokeOnMainThread(fun _ ->
             this.AssignColorLabels true
             if startWithReadOnlyAccounts then
