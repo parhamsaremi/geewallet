@@ -348,15 +348,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
 
-        let tapGestureRecognizer = TapGestureRecognizer()
-        tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-            Uri "http://www.geewallet.com"
-                |> Xamarin.Essentials.Launcher.OpenAsync
-                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-        ) |> ignore
-        let footerLabel = mainLayout.FindByName<Label> "footerLabel"
-        footerLabel.GestureRecognizers.Add tapGestureRecognizer
-
         let allNormalAccountFiatBalances =
             normalBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
         let allReadOnlyAccountFiatBalances =
