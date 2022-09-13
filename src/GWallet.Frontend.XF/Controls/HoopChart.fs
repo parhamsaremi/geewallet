@@ -11,29 +11,8 @@ type SegmentInfo =
         Amount: decimal
     }
 
-
-type private HoopChartState =
-    | Uninitialized
-    | Empty
-    | NonEmpty of seq<SegmentInfo>
-
-
-type private HoopSector =
-    {
-        Fraction: float
-        Color: Color
-    }
-    with
-        static member Create(fraction: float, color: Color) =
-            assert(fraction >= 0.0 && fraction <= 1.0)
-            { Fraction = fraction; Color = color }
-
-
 type HoopChartView() =
     inherit Layout<View>()
-
-    let mutable state = Uninitialized
-
     // Child UI elements
     let balanceLabel = Label(HorizontalTextAlignment = TextAlignment.Center, FontSize = 25.0, MaxLines=1)
     let balanceTagLabel = 
@@ -66,16 +45,7 @@ type HoopChartView() =
 
         frame
 
-    let defaultImage = 
-        Image (
-            HorizontalOptions = LayoutOptions.FillAndExpand,
-            VerticalOptions = LayoutOptions.FillAndExpand,
-            Aspect = Aspect.AspectFit
-        )
-
     let hoop = Grid()
-    let emptyStateWidget = StackLayout(Orientation = StackOrientation.Horizontal)
-
     // Properties
     static let segmentsSourceProperty =
         BindableProperty.Create("SegmentsSource", typeof<seq<SegmentInfo>>, typeof<HoopChartView>, null) 
@@ -102,7 +72,7 @@ type HoopChartView() =
     member this.HoopStrokeThickness = 7.5
     
     // Chart shapes
-    member private this.GetHoopShapes(segments: seq<SegmentInfo>, radius: float) : seq<Shape> =
+    member private this.GetHoopShapes(radius: float) : Shape=
         let deg2rad angle = System.Math.PI * (angle / 180.0)
         let thickness = this.HoopStrokeThickness
         let minorRadius = thickness/2.0
@@ -110,125 +80,59 @@ type HoopChartView() =
         let angleToPoint angle =
             Point(cos (deg2rad angle) * circleRadius + radius, sin (deg2rad angle) * circleRadius + radius)
         
-        let circleLength = circleRadius * System.Math.PI * 2.0
-        let spacingFraction = thickness / circleLength * 1.5
-
-        let visibleSectors =
-            let sum = segments |> Seq.sumBy (fun each -> each.Amount)
-            segments |> Seq.choose (fun segment -> 
-                let fraction = float(segment.Amount / sum)
-                if fraction >= spacingFraction then
-                    Some(HoopSector.Create(fraction, segment.Color))
-                else 
-                    None)
-
-        let normalizedSectors =
-            let sum = visibleSectors |> Seq.sumBy (fun each -> each.Fraction)
-            visibleSectors |> Seq.map (fun each -> { each with Fraction = each.Fraction/sum })
-
-        let spacingAngle = 360.0 * spacingFraction
-        let angles =
-            normalizedSectors
-            |> Seq.scan (fun currAngle sector -> currAngle + (360.0 * sector.Fraction)) 0.0
-        let anglePairs = Seq.pairwise angles
         
-        Seq.map2
-            (fun sector (startAngle, endAngle) ->
-                let startPoint = angleToPoint (startAngle + spacingAngle/2.0)
-                let endPoint = angleToPoint (endAngle - spacingAngle/2.0)
-                let arcAngle = endAngle - startAngle - spacingAngle
-                let path =
-                    // Workaround for Android where very small arcs wouldn't render
-                    if arcAngle / 360.0 * circleLength < 1.0 then 
-                        let midPoint = Point((startPoint.X + endPoint.X) / 2.0, (startPoint.Y + endPoint.Y) / 2.0)
-                        let geom = EllipseGeometry(midPoint, thickness/2.0, thickness/2.0)
-                        Path(Data = geom, Fill = SolidColorBrush sector.Color)
-                    else
-                        let geom = PathGeometry()
-                        let figure = PathFigure(StartPoint = startPoint)
-                        let segment = ArcSegment(endPoint, Size(circleRadius, circleRadius), arcAngle, SweepDirection.Clockwise, arcAngle > 180.0)
-                        figure.Segments.Add segment
-                        geom.Figures.Add figure
-                        Path(
-                            Data = geom, 
-                            Stroke = SolidColorBrush sector.Color, 
-                            StrokeThickness = thickness, 
-                            StrokeLineCap = PenLineCap.Round
-                        )
-                path :> Shape)
-            normalizedSectors
-            anglePairs
-    
-    member private this.RepopulateHoop(segments, sideLength) =
+        let startPoint = angleToPoint (0.0)
+        let endPoint = angleToPoint (360.0)
+        let arcAngle = 360.0
+        let geom = PathGeometry()
+        let figure = PathFigure(StartPoint = startPoint)
+        let segment = ArcSegment(endPoint, Size(circleRadius, circleRadius), arcAngle, SweepDirection.Clockwise, arcAngle > 180.0)
+        figure.Segments.Add segment
+        geom.Figures.Add figure
+        Path(
+            Data = geom, 
+            Stroke = SolidColorBrush (Color.FromRgb(245, 146, 47)), 
+            StrokeThickness = thickness, 
+            StrokeLineCap = PenLineCap.Round
+        ) :> Shape
+           
+    member private this.RepopulateHoop(sideLength) =
         hoop.Children.Clear()
-        this.GetHoopShapes(segments, sideLength / 2.0) |> Seq.iter hoop.Children.Add
+        this.GetHoopShapes(sideLength / 2.0) |> hoop.Children.Add
 
     // Layout
     override this.LayoutChildren(xCoord, yCoord, width, height) = 
-        match state with
-        | Uninitialized -> ()
-        | Empty -> 
-            let bounds = Rectangle.FromLTRB(xCoord, yCoord, xCoord + width, yCoord + height)
-            emptyStateWidget.Layout bounds
-        | NonEmpty(segments) -> 
-            let smallerSide = min width height
-            let xOffset = (max 0.0 (width - smallerSide)) / 2.0
-            let yOffset = (max 0.0 (height - smallerSide)) / 2.0
-            let bounds = Rectangle.FromLTRB(xCoord + xOffset, yCoord + yOffset, xCoord + xOffset + smallerSide, yCoord + yOffset + smallerSide)
+        
+        let smallerSide = min width height
+        let xOffset = (max 0.0 (width - smallerSide)) / 2.0
+        let yOffset = (max 0.0 (height - smallerSide)) / 2.0
+        let bounds = Rectangle.FromLTRB(xCoord + xOffset, yCoord + yOffset, xCoord + xOffset + smallerSide, yCoord + yOffset + smallerSide)
 
-            balanceFrame.Layout bounds
+        balanceFrame.Layout bounds
 
-            if abs(hoop.Height - smallerSide) > 0.1 then
-                this.RepopulateHoop(segments, smallerSide)
+        if abs(hoop.Height - smallerSide) > 0.1 then
+            this.RepopulateHoop(smallerSide)
             
-            hoop.Layout bounds
+        hoop.Layout bounds
 
     override this.OnMeasure(widthConstraint, heightConstraint) =
         let smallerRequestedSize = min widthConstraint heightConstraint |> min this.MinimumChartSize
-        let minSize = 
-            match state with
-            | Uninitialized -> 0.0
-            | Empty -> this.MinimumLogoSize
-            | NonEmpty _ -> 
-                let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
-                let factor = 1.1 // to add som visual space between label and chart
-                (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * factor
+        let minSize =   
+            let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
+            let factor = 1.1 // to add som visual space between label and chart
+            (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * factor
         let sizeToRequest = max smallerRequestedSize minSize
         SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
     
     // Updates
-    member private this.SetState(newState: HoopChartState) =
-        if newState <> state then
-            state <- newState
-            match state with
-            | Uninitialized -> failwith "Invalid state"
-            | Empty ->
-                this.Children.Clear()
-                emptyStateWidget.Children.Clear()
-                emptyStateWidget.Children.Add balanceFrame
-                emptyStateWidget.Children.Add defaultImage
-                this.Children.Add emptyStateWidget
-            | NonEmpty(segments) ->
-                this.Children.Clear()
-                if this.Width > 0.0 && this.Height > 0.0 then
-                    this.RepopulateHoop(segments, min this.Width this.Height)
-                this.Children.Add hoop
-                this.Children.Add balanceFrame
-
-    member private this.UpdateChart() =
-        let nonZeroSegments =
-            match this.SegmentsSource with
-            | null -> Seq.empty
-            | segments -> segments |> Seq.filter (fun segment -> segment.Amount > 0.0m)
-
-        if nonZeroSegments |> Seq.isEmpty |> not then
-            this.SetState(NonEmpty(nonZeroSegments))
-        else
-            this.SetState(Empty)
+    member private this.SetState() =
+        this.Children.Clear()
+        if this.Width > 0.0 && this.Height > 0.0 then
+            this.RepopulateHoop(min this.Width this.Height)
+        this.Children.Add hoop
+        this.Children.Add balanceFrame
 
     override this.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged propertyName
         if propertyName = HoopChartView.SegmentsSourceProperty.PropertyName then
-            this.UpdateChart()
-        elif propertyName = HoopChartView.DefaultImageSourceProperty.PropertyName then
-            defaultImage.Source <- this.DefaultImageSource
+            this.SetState()
