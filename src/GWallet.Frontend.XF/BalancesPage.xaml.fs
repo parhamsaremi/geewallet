@@ -84,21 +84,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             | _ ->
                 FindCryptoBalances cryptoBalanceClassId layout tail resultsSoFar
 
-    let RedrawCircleView (readOnly: bool) (balances: seq<BalanceState>) =
+    let RedrawCircleView (readOnly: bool) =
         let chartView =
             if readOnly then
                 readonlyChartView
             else
                 normalChartView
-        
-        let chartSourceList = 
-            balances |> Seq.map (fun balanceState ->
-                 { 
-                     Color = Color.FromRgb(245, 146, 47)
-                     Amount = 10.0m
-                 }
-            )
-        chartView.SegmentsSource <- chartSourceList
+        chartView.SetState()
 
     // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
     let mutable noImminentIncomingPayment = false
@@ -159,7 +151,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                             |> List.ofSeq
         Device.BeginInvokeOnMainThread(fun _ ->
             this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
-            RedrawCircleView readOnly balancesJob
+            RedrawCircleView readOnly
         )
         balancesJob.Any(fun balanceState ->
 
@@ -242,7 +234,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         normalBalanceStates
                 this.AssignColorLabels switchingToReadOnly
                 this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
-                RedrawCircleView switchingToReadOnly balancesStatesToPopulate
+                RedrawCircleView switchingToReadOnly
         )
         currentChartView.BalanceFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer
@@ -253,7 +245,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         this.ConfigureFiatAmountFrame true |> ignore
 
         this.PopulateBalances false normalBalanceStates
-        RedrawCircleView false normalBalanceStates
+        RedrawCircleView false
 
         if startWithReadOnlyAccounts then
             tapper.SendTapped null
@@ -274,9 +266,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             balanceSet.Widgets.FiatLabel.TextColor <- color
 
     member private this.Init () =
-        normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
-        readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
-
         let allNormalAccountFiatBalances =
             normalBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
         let allReadOnlyAccountFiatBalances =

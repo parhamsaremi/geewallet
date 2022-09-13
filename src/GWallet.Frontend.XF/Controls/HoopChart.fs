@@ -49,19 +49,12 @@ type HoopChartView() =
     // Properties
     static let segmentsSourceProperty =
         BindableProperty.Create("SegmentsSource", typeof<seq<SegmentInfo>>, typeof<HoopChartView>, null) 
-    static let defaultImageSourceProperty =
-        BindableProperty.Create("DefaultImageSource", typeof<ImageSource>, typeof<HoopChartView>, null)
 
     static member SegmentsSourceProperty = segmentsSourceProperty
-    static member DefaultImageSourceProperty = defaultImageSourceProperty
 
     member self.SegmentsSource
         with get () = self.GetValue segmentsSourceProperty :?> seq<SegmentInfo>
         and set (value: seq<SegmentInfo>) = self.SetValue(segmentsSourceProperty, value)
-
-    member self.DefaultImageSource
-        with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
-        and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
 
     member this.BalanceLabel = balanceLabel
     member this.BalanceFrame = balanceFrame
@@ -125,14 +118,9 @@ type HoopChartView() =
         SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
     
     // Updates
-    member private this.SetState() =
+    member this.SetState() =
         this.Children.Clear()
         if this.Width > 0.0 && this.Height > 0.0 then
             this.RepopulateHoop(min this.Width this.Height)
         this.Children.Add hoop
         this.Children.Add balanceFrame
-
-    override this.OnPropertyChanged(propertyName: string) =
-        base.OnPropertyChanged propertyName
-        if propertyName = HoopChartView.SegmentsSourceProperty.PropertyName then
-            this.SetState()
