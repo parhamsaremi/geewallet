@@ -157,24 +157,7 @@ let lines =
     |> Seq.map toConfigFileLine
 File.AppendAllLines(buildConfigFile.FullName, lines |> Array.ofSeq)
 
-let version = Misc.GetCurrentVersion(rootDir)
 
 let repoInfo = Git.GetRepoInfo()
-
-Console.WriteLine()
-Console.WriteLine(sprintf
-                      "\tConfiguration summary for geewallet %s %s"
-                      (version.ToString()) repoInfo)
-Console.WriteLine()
-Console.WriteLine(sprintf
-                      "\t* Installation prefix: %s"
-                      prefix.FullName)
-Console.WriteLine(sprintf
-                      "\t* F# script runner: %s"
-                      fsxRunner)
-Console.WriteLine(sprintf
-                      "\t* .NET build tool: %s"
-                      buildTool)
-Console.WriteLine()
 
 Console.WriteLine "Configuration succeeded, you can now run `make`"
