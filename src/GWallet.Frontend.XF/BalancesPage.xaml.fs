@@ -7,7 +7,7 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Frontend.XF.Controls
 
-type BalancesPage(someBool)
+type BalancesPage()
                       as this =
     inherit ContentPage()
 
@@ -16,8 +16,6 @@ type BalancesPage(someBool)
     let normalChartView = base.FindByName<HoopChartView> "normalChartView"
     let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
 
-    // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
-       
     let UpdateGlobalFiatBalanceLabel (balance: decimal) (totalFiatAmountLabel: Label) =
         let strBalance =
             sprintf "%s" (balance.ToString())
@@ -32,8 +30,6 @@ type BalancesPage(someBool)
         chartView.SetState()
     do
         this.Init()
-
-    new() = BalancesPage(false)
 
     member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
@@ -50,12 +46,9 @@ type BalancesPage(someBool)
             )
         ()
 
-    member this.PopulateGridInitially () =
-        RedrawCircleView false
-
     member private this.Init () =
         Device.BeginInvokeOnMainThread(fun _ ->
-            this.PopulateGridInitially ()
+            RedrawCircleView false
 
             UpdateGlobalFiatBalanceLabel 0m normalChartView.BalanceLabel
             UpdateGlobalFiatBalanceLabel 0m readonlyChartView.BalanceLabel
@@ -63,4 +56,3 @@ type BalancesPage(someBool)
 
         this.RefreshBalances true
         this.RefreshBalances false
-
