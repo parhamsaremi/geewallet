@@ -89,9 +89,6 @@
       <Link>img\logo_512x512.png</Link>
     </EmbeddedResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
     <Compile Include="FrontendHelpers.fs" />
     <Compile Include="GlobalState.fs" />
     <Compile Include="Controls\HoopChart.fs" />
