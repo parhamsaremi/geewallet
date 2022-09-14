@@ -5,19 +5,13 @@ open Xamarin.Forms
 open Xamarin.Forms.Shapes
 
 
-type SegmentInfo = 
-    {
-        Color: Color
-        Amount: decimal
-    }
-
 type HoopChartView() =
     inherit Layout<View>()
     // Child UI elements
     let balanceLabel = Label(HorizontalTextAlignment = TextAlignment.Center, FontSize = 25.0, MaxLines=1)
     let balanceTagLabel = 
         Label( 
-            Text = "Total Assets:", 
+            Text = "Some label:", 
             FontSize = 15.0, 
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
@@ -47,21 +41,10 @@ type HoopChartView() =
 
     let hoop = Grid()
     // Properties
-    static let segmentsSourceProperty =
-        BindableProperty.Create("SegmentsSource", typeof<seq<SegmentInfo>>, typeof<HoopChartView>, null) 
-
-    static member SegmentsSourceProperty = segmentsSourceProperty
-
-    member self.SegmentsSource
-        with get () = self.GetValue segmentsSourceProperty :?> seq<SegmentInfo>
-        and set (value: seq<SegmentInfo>) = self.SetValue(segmentsSourceProperty, value)
-
     member this.BalanceLabel = balanceLabel
     member this.BalanceFrame = balanceFrame
 
     // Layout properties
-    member this.MinimumChartSize = 200.0
-    member this.MinimumLogoSize = 50.0
     member this.HoopStrokeThickness = 7.5
     
     // Chart shapes
@@ -72,8 +55,6 @@ type HoopChartView() =
         let circleRadius = radius - minorRadius
         let angleToPoint angle =
             Point(cos (deg2rad angle) * circleRadius + radius, sin (deg2rad angle) * circleRadius + radius)
-        
-        
         let startPoint = angleToPoint (0.0)
         let endPoint = angleToPoint (360.0)
         let arcAngle = 360.0

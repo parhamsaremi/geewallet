@@ -4,29 +4,20 @@
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              xmlns:controls="clr-namespace:GWallet.Frontend.XF.Controls"
              x:Class="GWallet.Frontend.XF.BalancesPage">
-    <StackLayout x:Name="mainLayout"
-                 Padding="0,0,0,0"
-                 VerticalOptions="FillAndExpand">
-
-        <StackLayout Orientation="Horizontal"
+    <StackLayout Orientation="Horizontal"
                      Padding="15, 10"
                      Spacing="30"
                      VerticalOptions="FillAndExpand"
-                     HorizontalOptions="FillAndExpand">         
+                     HorizontalOptions="FillAndExpand">
 
-            <controls:HoopChartView x:Name="normalChartView"
+        <controls:HoopChartView x:Name="normalChartView"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>
 
-            <controls:HoopChartView x:Name="readonlyChartView"
+        <controls:HoopChartView x:Name="readonlyChartView"
                                      IsVisible="False"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>
 
-        </StackLayout>
-
-        <ScrollView HorizontalOptions="FillAndExpand">
-            <StackLayout x:Name="contentLayout" />
-        </ScrollView>
     </StackLayout>
 </ContentPage>
