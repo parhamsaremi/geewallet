@@ -15,7 +15,7 @@ jobs:
     - name: configure
       run: ./configure.sh
     - name: restore
-      run: mkdir -p .nuget/ && cd .nuget/ && apt install --yes wget && wget https://dist.nuget.org/win-x86-commandline/v5.4.0/nuget.exe && cd ..
+      run: mkdir -p .nuget/ && cd .nuget/ && wget https://dist.nuget.org/win-x86-commandline/v5.4.0/nuget.exe && cd ..
     - name: build in DEBUG mode
       run: make
     - name: build in RELEASE mode
