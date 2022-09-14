@@ -1,8 +1,6 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
-open System.Linq
-open System.Threading
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -23,18 +21,12 @@ type TotalBalance =
         y + x
 
 
-type BalancesPage(state: FrontendHelpers.IGlobalAppState,
-                  normalBalanceStates: seq<BalanceState>,
-                  readOnlyBalanceStates: seq<BalanceState>,
-                  startWithReadOnlyAccounts: bool)
+type BalancesPage(someBool)
                       as this =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
-    let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
-    let readOnlyAccountsBalanceSets = readOnlyBalanceStates.Select(fun balState -> balState.BalanceSet)
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let normalChartView = base.FindByName<HoopChartView> "normalChartView"
     let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
 
@@ -42,13 +34,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
        
     let UpdateGlobalFiatBalanceLabel (balance: decimal) (totalFiatAmountLabel: Label) =
         let strBalance =
-            sprintf "~ %s USD" (balance.ToString())
+            sprintf "%s" (balance.ToString())
         totalFiatAmountLabel.Text <- strBalance
-
-    let rec UpdateGlobalFiatBalance totalFiatAmountLabel
-                                        : unit =
-        UpdateGlobalFiatBalanceLabel 0m totalFiatAmountLabel
-        
 
     let RedrawCircleView (readOnly: bool) =
         let chartView =
@@ -57,112 +44,35 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             else
                 normalChartView
         chartView.SetState()
-
-    // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
-    let mutable noImminentIncomingPayment = false
-
-    let lockObject = Object()
-
     do
         this.Init()
 
-    [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
-                         false)
-
-    member private this.NoImminentIncomingPayment
-        with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
-         and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
-
-    member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
-                                            fiatLabel
-                                            (readOnly: bool)
-                                                : Option<bool> =
-        
-        Device.BeginInvokeOnMainThread(fun _ ->
-            UpdateGlobalFiatBalance fiatLabel
-            RedrawCircleView readOnly
-        )
-        None
-        
+    new() = BalancesPage(false)
 
     member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
 
-        this.UpdateGlobalBalance state readonlyChartView.BalanceLabel true |> ignore
+        Device.BeginInvokeOnMainThread(fun _ ->
+            UpdateGlobalFiatBalanceLabel 0m  readonlyChartView.BalanceLabel
+            RedrawCircleView true
+        )
 
         if (not onlyReadOnlyAccounts) then
-            this.UpdateGlobalBalance state normalChartView.BalanceLabel false |> ignore
+            Device.BeginInvokeOnMainThread(fun _ ->
+                UpdateGlobalFiatBalanceLabel 0m  normalChartView.BalanceLabel
+                RedrawCircleView false
+            )
         ()
 
-    member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
-        let currentChartViewName,otherChartViewName =
-            if readOnly then
-                "readonlyChartView","normalChartView"
-            else
-                "normalChartView","readonlyChartView"
-
-        let switchingToReadOnly = not readOnly
-
-        let currentChartView,otherChartView =
-            mainLayout.FindByName<HoopChartView> currentChartViewName,
-            mainLayout.FindByName<HoopChartView> otherChartViewName
-
-        let tapGestureRecognizer = TapGestureRecognizer()
-        tapGestureRecognizer.Tapped.Add(fun _ ->
-
-            let shouldNotOpenNewPage =
-                if switchingToReadOnly then
-                    readOnlyAccountsBalanceSets.Any()
-                else
-                    true
-
-            if shouldNotOpenNewPage then
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    currentChartView.IsVisible <- false
-                    otherChartView.IsVisible <- true
-                )
-                this.AssignColorLabels switchingToReadOnly
-                RedrawCircleView switchingToReadOnly
-        )
-        currentChartView.BalanceFrame.GestureRecognizers.Add tapGestureRecognizer
-        tapGestureRecognizer
-
     member this.PopulateGridInitially () =
-
-        let tapper = this.ConfigureFiatAmountFrame false
-        this.ConfigureFiatAmountFrame true |> ignore
-
         RedrawCircleView false
-
-        if startWithReadOnlyAccounts then
-            tapper.SendTapped null
-
-    member private this.AssignColorLabels (readOnly: bool) =
-        let labels,color =
-            if readOnly then
-                let color = Color.DarkBlue
-                readonlyChartView.BalanceLabel.TextColor <- color
-                readOnlyAccountsBalanceSets,color
-            else
-                let color = Color.DarkRed
-                normalChartView.BalanceLabel.TextColor <- color
-                normalAccountsBalanceSets,color
-
-        for balanceSet in labels do
-            balanceSet.Widgets.CryptoLabel.TextColor <- color
-            balanceSet.Widgets.FiatLabel.TextColor <- color
 
     member private this.Init () =
         Device.BeginInvokeOnMainThread(fun _ ->
-            this.AssignColorLabels true
-            if startWithReadOnlyAccounts then
-                this.AssignColorLabels false
-
             this.PopulateGridInitially ()
 
-            UpdateGlobalFiatBalance normalChartView.BalanceLabel
-            UpdateGlobalFiatBalance readonlyChartView.BalanceLabel
+            UpdateGlobalFiatBalanceLabel 0m normalChartView.BalanceLabel
+            UpdateGlobalFiatBalanceLabel 0m readonlyChartView.BalanceLabel
         )
 
         this.RefreshBalances true
