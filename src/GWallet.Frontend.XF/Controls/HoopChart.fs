@@ -1,4 +1,4 @@
-﻿namespace GWallet.Frontend.XF.Controls
+namespace GWallet.Frontend.XF.Controls
 
 
 open Xamarin.Forms
@@ -199,6 +199,11 @@ type HoopChartView() =
     // Updates
     member private this.SetState(newState: HoopChartState) =
         if newState <> state then
+            let oldState = 
+                match state with
+                | Uninitialized -> "Uninitialized"
+                | Empty -> "Empty"
+                | NonEmpty _ -> "NonEmpty"
             state <- newState
             match state with
             | Uninitialized -> failwith "Invalid state"
@@ -209,11 +214,15 @@ type HoopChartView() =
                 emptyStateWidget.Children.Add defaultImage
                 this.Children.Add emptyStateWidget
             | NonEmpty(segments) ->
-                this.Children.Clear()
-                if this.Width > 0.0 && this.Height > 0.0 then
-                    this.RepopulateHoop(segments, min this.Width this.Height)
-                this.Children.Add hoop
-                this.Children.Add balanceFrame
+                if oldState = "NonEmpty" then
+                    if this.Width > 0.0 && this.Height > 0.0 then
+                        this.RepopulateHoop(segments, min this.Width this.Height)
+                else
+                    this.Children.Clear()
+                    if this.Width > 0.0 && this.Height > 0.0 then
+                        this.RepopulateHoop(segments, min this.Width this.Height)
+                    this.Children.Add hoop
+                    this.Children.Add balanceFrame
 
     member private this.UpdateChart() =
         let nonZeroSegments =
