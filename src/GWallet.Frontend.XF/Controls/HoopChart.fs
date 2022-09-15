@@ -2,14 +2,12 @@
 
 
 open Xamarin.Forms
-open Xamarin.Forms.Shapes
 
 
 type HoopChartView() =
     inherit Layout<View>()
     // Child UI elements
-    let balanceLabel = Label(HorizontalTextAlignment = TextAlignment.Center, FontSize = 25.0, MaxLines=1)
-    let balanceTagLabel = 
+    let tagLabel = 
         Label( 
             Text = "Some label:", 
             FontSize = 15.0, 
@@ -18,7 +16,7 @@ type HoopChartView() =
             Margin = Thickness(0.0, -7.5)
         )
 
-    let balanceFrame = 
+    let mainFrame = 
         let frame = 
             Frame(
                 HasShadow = false,
@@ -33,15 +31,13 @@ type HoopChartView() =
                 VerticalOptions = LayoutOptions.CenterAndExpand,
                 HorizontalOptions = LayoutOptions.Center
             )
-        stackLayout.Children.Add balanceTagLabel
-        stackLayout.Children.Add balanceLabel
+        stackLayout.Children.Add tagLabel
         frame.Content <- stackLayout
 
         frame
 
     // Properties
-    member this.BalanceLabel = balanceLabel
-    member this.BalanceFrame = balanceFrame
+    member this.MainFrame = mainFrame
 
     // Layout
     override this.LayoutChildren(xCoord, yCoord, width, height) = 
@@ -51,9 +47,9 @@ type HoopChartView() =
         let yOffset = (max 0.0 (height - smallerSide)) / 2.0
         let bounds = Rectangle.FromLTRB(xCoord + xOffset, yCoord + yOffset, xCoord + xOffset + smallerSide, yCoord + yOffset + smallerSide)
 
-        balanceFrame.Layout bounds
+        mainFrame.Layout bounds
 
     // Updates
     member this.SetState() =
         this.Children.Clear()
-        this.Children.Add balanceFrame
+        this.Children.Add mainFrame
