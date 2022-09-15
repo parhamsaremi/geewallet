@@ -1,7 +1,5 @@
 ﻿namespace GWallet.Frontend.XF
 
-open System
-
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 
@@ -16,43 +14,22 @@ type BalancesPage()
     let normalChartView = base.FindByName<HoopChartView> "normalChartView"
     let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
 
-    let UpdateGlobalFiatBalanceLabel (balance: decimal) (totalFiatAmountLabel: Label) =
-        let strBalance =
-            sprintf "%s" (balance.ToString())
-        totalFiatAmountLabel.Text <- strBalance
-
-    let RedrawCircleView (readOnly: bool) =
-        let chartView =
-            if readOnly then
-                readonlyChartView
-            else
-                normalChartView
-        chartView.SetState()
+    let UpdateLabel (label: Label) =
+        label.Text <- sprintf "%A" 0
     do
         this.Init()
 
-    member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
-        // we don't mind to be non-fast because it's refreshing in the background anyway
-
-        Device.BeginInvokeOnMainThread(fun _ ->
-            UpdateGlobalFiatBalanceLabel 0m  readonlyChartView.BalanceLabel
-            RedrawCircleView true
-        )
-
-        if (not onlyReadOnlyAccounts) then
-            Device.BeginInvokeOnMainThread(fun _ ->
-                UpdateGlobalFiatBalanceLabel 0m  normalChartView.BalanceLabel
-                RedrawCircleView false
-            )
-        ()
-
     member private this.Init () =
         Device.BeginInvokeOnMainThread(fun _ ->
-            RedrawCircleView false
+            normalChartView.SetState()
 
-            UpdateGlobalFiatBalanceLabel 0m normalChartView.BalanceLabel
-            UpdateGlobalFiatBalanceLabel 0m readonlyChartView.BalanceLabel
+            UpdateLabel normalChartView.BalanceLabel
+            UpdateLabel readonlyChartView.BalanceLabel
         )
 
-        this.RefreshBalances true
-        this.RefreshBalances false
+        Device.BeginInvokeOnMainThread(fun _ ->
+            UpdateLabel readonlyChartView.BalanceLabel
+            readonlyChartView.SetState()
+            UpdateLabel normalChartView.BalanceLabel
+            normalChartView.SetState()
+        )
