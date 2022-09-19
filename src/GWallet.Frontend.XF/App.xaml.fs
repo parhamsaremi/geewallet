@@ -3,5 +3,5 @@
 open Xamarin.Forms
 
 type App() =
-    inherit Application(MainPage = (BalancesPage():> Page))
+    inherit Application(MainPage = (MainPage():> Page))
 

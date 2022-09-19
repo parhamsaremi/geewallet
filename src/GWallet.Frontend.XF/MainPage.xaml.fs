@@ -1,8 +1,7 @@
-﻿namespace GWallet.Frontend.XF.Controls
-
+﻿namespace GWallet.Frontend.XF
 
 open Xamarin.Forms
-
+open Xamarin.Forms.Xaml
 
 type HoopChartView() =
     inherit Layout<View>()
@@ -53,3 +52,22 @@ type HoopChartView() =
     member this.SetState() =
         this.Children.Clear()
         this.Children.Add balanceFrame
+
+type MainPage()
+                      as this =
+    inherit ContentPage()
+
+    let _ = base.LoadFromXaml(typeof<MainPage>)
+
+    let normalChartView = base.FindByName<HoopChartView> "normalChartView"
+    do
+        this.Init()
+
+    member private this.Init () =
+        Device.BeginInvokeOnMainThread(fun _ ->
+            normalChartView.SetState()
+        )
+
+        Device.BeginInvokeOnMainThread(fun _ ->
+            normalChartView.SetState()
+        )

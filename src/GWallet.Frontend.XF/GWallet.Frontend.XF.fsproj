@@ -89,9 +89,8 @@
       <Link>img\logo_512x512.png</Link>
     </EmbeddedResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="Controls\HoopChart.fs" />
-    <Compile Include="BalancesPage.xaml.fs">
-      <DependentUpon>BalancesPage.xaml</DependentUpon>
+    <Compile Include="MainPage.xaml.fs">
+      <DependentUpon>MainPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="App.xaml.fs">

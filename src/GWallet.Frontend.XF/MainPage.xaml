@@ -3,21 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              xmlns:controls="clr-namespace:GWallet.Frontend.XF.Controls"
-             x:Class="GWallet.Frontend.XF.BalancesPage">
+             x:Class="GWallet.Frontend.XF.MainPage">
     <StackLayout Orientation="Horizontal"
                      Padding="15, 10"
                      Spacing="30"
                      VerticalOptions="FillAndExpand"
                      HorizontalOptions="FillAndExpand">
 
-        <controls:HoopChartView x:Name="normalChartView"
+        <HoopChartView x:Name="normalChartView"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>
-
-        <controls:HoopChartView x:Name="readonlyChartView"
-                                     IsVisible="False"
-                                     HorizontalOptions="FillAndExpand"
-                                     VerticalOptions="FillAndExpand"/>
-
     </StackLayout>
 </ContentPage>
