@@ -15,7 +15,7 @@ type HoopChartView() =
             Margin = Thickness(0.0, -7.5)
         )
 
-    let balanceFrame = 
+    let mainFrame = 
         let frame = 
             Frame(
                 HasShadow = false,
@@ -36,7 +36,7 @@ type HoopChartView() =
         frame
 
     // Properties
-    member this.BalanceFrame = balanceFrame
+    member this.MainFrame = mainFrame
 
     // Layout
     override this.LayoutChildren(xCoord, yCoord, width, height) = 
@@ -46,12 +46,12 @@ type HoopChartView() =
         let yOffset = (max 0.0 (height - smallerSide)) / 2.0
         let bounds = Rectangle.FromLTRB(xCoord + xOffset, yCoord + yOffset, xCoord + xOffset + smallerSide, yCoord + yOffset + smallerSide)
 
-        balanceFrame.Layout bounds
+        mainFrame.Layout bounds
 
     // Updates
     member this.SetState() =
         this.Children.Clear()
-        this.Children.Add balanceFrame
+        this.Children.Add mainFrame
 
 type MainPage()
                       as this =
@@ -66,8 +66,6 @@ type MainPage()
     member private this.Init () =
         Device.BeginInvokeOnMainThread(fun _ ->
             normalChartView.SetState()
-        )
-
-        Device.BeginInvokeOnMainThread(fun _ ->
             normalChartView.SetState()
         )
+
