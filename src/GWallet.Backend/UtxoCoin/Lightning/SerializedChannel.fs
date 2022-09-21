@@ -121,7 +121,7 @@ type SerializedChannel =
                 LNMoney.FromMoney <| feeRate.CalculateFeeFromWeight weight
             else
                 LNMoney.Zero
-        capacity - channelReserve - fee
+        capacity - channelReserve - fee - LNMoney.Satoshis 2 * 330
 
     member internal self.ChannelId (): ChannelIdentifier =
         self.SavedChannelState.StaticChannelConfig.ChannelId()
