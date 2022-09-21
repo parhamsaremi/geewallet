@@ -69,6 +69,7 @@ type SerializedChannel =
         NodeTransportType: NodeTransportType
         ClosingTimestampUtc: Option<DateTime>
     }
+
     static member LightningSerializerSettings currency: JsonSerializerSettings =
         let settings = JsonMarshalling.SerializerSettings
 
@@ -110,6 +111,7 @@ type SerializedChannel =
     // to this amount before the funder no longer has enough funds to cover
     // the channel reserve and closing fee.
     member internal self.MaxBalance(): DotNetLightning.Utils.LNMoney =
+        let anchorOutputCost = LNMoney.Satoshis 2 * 330
         let capacity = LNMoney.FromMoney <| self.Capacity()
         let channelReserve =
             LNMoney.FromMoney
@@ -118,10 +120,11 @@ type SerializedChannel =
             if self.IsFunder() then
                 let feeRate = self.SavedChannelState.LocalCommit.Spec.FeeRatePerKw
                 let weight = COMMITMENT_TX_BASE_WEIGHT
-                LNMoney.FromMoney <| feeRate.CalculateFeeFromWeight weight
+                let feeWithoutAnchorOutputCost = LNMoney.FromMoney <| feeRate.CalculateFeeFromWeight weight
+                feeWithoutAnchorOutputCost + anchorOutputCost
             else
                 LNMoney.Zero
-        capacity - channelReserve - fee - LNMoney.Satoshis 2 * 330
+        capacity - channelReserve - fee
 
     member internal self.ChannelId (): ChannelIdentifier =
         self.SavedChannelState.StaticChannelConfig.ChannelId()
