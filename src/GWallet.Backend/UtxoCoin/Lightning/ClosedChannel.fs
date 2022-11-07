@@ -78,7 +78,7 @@ type ClosureTransaction =
 
 type ClosedChannel()= 
 
-    static member internal InitiateCloseChannel(connectedChannel: ConnectedChannel): Async<Result<ClosedChannel, CloseChannelError>> =
+    static member internal InitiateCloseChannel(connectedChannel: ConnectedChannel): Async<Result<ClosedChannel*Option<string>, CloseChannelError>> =
         async {
             let ourPayoutScriptOpt =
                 connectedChannel.Channel.Channel.SavedChannelState.StaticChannelConfig.LocalStaticShutdownScriptPubKey
@@ -98,10 +98,10 @@ type ClosedChannel()=
 
                 match closingSignedExchangeResult with
                 | Error e -> return Error <| e
-                | Ok _ -> return Ok (ClosedChannel())
+                | Ok (_, txid) -> return Ok (ClosedChannel(), txid)
         }
 
-    static member internal AcceptCloseChannel(connectedChannel: ConnectedChannel, shutdownMsg: ShutdownMsg): Async<Result<ClosedChannel, CloseChannelError>> =
+    static member internal AcceptCloseChannel(connectedChannel: ConnectedChannel, shutdownMsg: ShutdownMsg): Async<Result<ClosedChannel*Option<string>, CloseChannelError>> =
         async {
             let ourPayoutScriptOpt =
                 connectedChannel.Channel.Channel.SavedChannelState.StaticChannelConfig.LocalStaticShutdownScriptPubKey
@@ -121,7 +121,7 @@ type ClosedChannel()=
 
                 match closingSignedExchangeResult with
                 | Error e -> return Error <| e
-                | Ok _ -> return Ok (ClosedChannel())
+                | Ok (_, txid) -> return Ok (ClosedChannel(), txid)
 
         }
 
@@ -253,11 +253,11 @@ type ClosedChannel()=
                                }
         }
 
-    static member private RunClosingSignedExchange (connectedChannel: ConnectedChannel) ourPayoutScript: Async<Result<ConnectedChannel, CloseChannelError>> =
+    static member private RunClosingSignedExchange (connectedChannel: ConnectedChannel) ourPayoutScript: Async<Result<ConnectedChannel*Option<String>, CloseChannelError>> =
         async {
             Infrastructure.LogDebug "Starting closingSigned exchange loop"
 
-            let rec exchange (channel: ConnectedChannel) =
+            let rec exchange (channel: ConnectedChannel): Async<Result<ConnectedChannel*Option<String>, CloseChannelError>> =
                 async {
                     Infrastructure.LogDebug "Waiting for next closingSigned message from peer"
                     let! recvChannelMsgRes = channel.PeerNode.RecvChannelMsg()
@@ -267,7 +267,7 @@ type ClosedChannel()=
                         // We assume the peer closed the connection after broadcasting the tx
                         Infrastructure.LogDebug "Peer closed connection after successful closing negotiation"
                         channel.SaveToWallet()
-                        return Ok channel
+                        return Ok (channel, None)
                     | Error (ReceivedPeerErrorMessage (peerWrapperAfterClosingSignedReceived, errorMessage)) ->
                         let connectedChannelAfterError =
                             { channel with
@@ -349,7 +349,7 @@ type ClosedChannel()=
 
                                     connectedChannelAfterMutualClosePerformed.SaveToWallet()
 
-                                    return Ok connectedChannelAfterMutualClosePerformed
+                                    return Ok (connectedChannelAfterMutualClosePerformed, Some _txid)
                             | Error err ->
                                 return Error <| ApplyClosingSignedFailed err
                         | _ ->

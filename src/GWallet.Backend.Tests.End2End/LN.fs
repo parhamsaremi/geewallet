@@ -582,7 +582,7 @@ type LN() =
                 match receivedEvent with
                 | Error err ->
                     return Error (SPrintF1 "Failed to receive shutdown msg from LND: %A" err)
-                | Ok event when event = IncomingChannelEvent.Shutdown ->
+                | Ok (event, _) when event = IncomingChannelEvent.Shutdown ->
                     return Ok ()
                 | _ -> return! receiveEvent ()
             }

@@ -400,8 +400,14 @@ module LayerTwo =
                                         if UserInteraction.AskYesNo "Do you want to force-close the channel now?" then
                                             return! ForceCloseChannel (Node.Client nodeClient) currency channelId
                                     | _ -> ()
-                            | Ok () ->
-                                Console.WriteLine "Channel closed."
+                            | Ok maybeTxId ->
+                                match maybeTxId with
+                                | Some txId ->
+                                    Console.WriteLine (
+                                        sprintf "Channel closed with transaction uri: %A." (BlockExplorer.GetTransaction currency txId)
+                                    )
+                                | None ->
+                                    Console.WriteLine "Channel closed."
                         }
                     return! UserInteraction.TryWithPasswordAsync tryClose
                     UserInteraction.PressAnyKeyToContinue()
@@ -513,12 +519,19 @@ module LayerTwo =
                             let currency = (account :> IAccount).Currency
                             Console.WriteLine(sprintf "Error receiving lightning event: %s" nodeReceiveLightningEventError.Message)
                             do! MaybeForceCloseChannel (Node.Server nodeServer) currency channelId nodeReceiveLightningEventError
-                        | Ok msg ->
+                        | Ok (msg, maybeTxId) ->
                             match msg with
                             | IncomingChannelEvent.MonoHopUnidirectionalPayment ->
                                 Console.WriteLine "Payment received."
                             | IncomingChannelEvent.Shutdown ->
-                                Console.WriteLine "Channel closed."
+                                match maybeTxId with
+                                | Some txId ->
+                                    let currency = (account:> IAccount).Currency
+                                    Console.WriteLine (
+                                        sprintf "Channel closed with transaction uri: %A" (BlockExplorer.GetTransaction currency txId)
+                                    )
+                                | None ->
+                                    Console.WriteLine "Channel closed."
                     }
                 do! UserInteraction.TryWithPasswordAsync tryReceiveLightningEvent
                 UserInteraction.PressAnyKeyToContinue()

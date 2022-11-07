@@ -363,7 +363,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                 return Ok ()
     }
 
-    member internal self.InitiateCloseChannel (channelId: ChannelIdentifier): Async<Result<unit, NodeInitiateCloseChannelError>> =
+    member internal self.InitiateCloseChannel (channelId: ChannelIdentifier): Async<Result<Option<string>, NodeInitiateCloseChannelError>> =
         async {
             let! connectRes =
                 ActiveChannel.ConnectReestablish self.ChannelStore self.NodeMasterPrivKey channelId
@@ -375,8 +375,8 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                 match closeRes with
                 | Error closeError ->
                     return Error <| NodeInitiateCloseChannelError.InitiateCloseChannel (closeError :> IErrorMsg)
-                | Ok _ ->
-                    return Ok ()
+                | Ok (_, txid) ->
+                    return Ok txid
         }
 
     member internal self.ConnectLockChannelFunding (channelId: ChannelIdentifier)
@@ -522,7 +522,7 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
 
     // use ReceiveLightningEvent instead
     member internal self.AcceptCloseChannel (channelId: ChannelIdentifier)
-                                                : Async<Result<unit, IErrorMsg>> = async {
+                                                : Async<Result<Option<string>, IErrorMsg>> = async {
         let! activeChannelRes = ActiveChannel.AcceptReestablish self.ChannelStore self.TransportListener channelId
         match activeChannelRes with
         | Error reconnectActiveChannelError ->
@@ -567,13 +567,13 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
 
     member private self.HandleShutdownMsg (activeChannel: ActiveChannel)
                                           (shutdownMsg: DotNetLightning.Serialization.Msgs.ShutdownMsg)
-                                              : Async<Result<unit, IErrorMsg>> = async {
+                                              : Async<Result<Option<string>, IErrorMsg>> = async {
         let! closeRes = ClosedChannel.AcceptCloseChannel (activeChannel.ConnectedChannel, shutdownMsg)
         match closeRes with
         | Error acceptCloseChannelError ->
             return Error <| (NodeAcceptCloseChannelError.AcceptCloseChannel acceptCloseChannelError :> IErrorMsg)
-        | Ok _ ->
-            return Ok ()
+        | Ok (_, txId) ->
+            return Ok txId
     }
 
     member internal self.AcceptLockChannelFunding (channelId: ChannelIdentifier)
@@ -601,7 +601,7 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
         }
 
     member internal self.ReceiveLightningEvent (channelId: ChannelIdentifier)
-                                                   : Async<Result<IncomingChannelEvent, IErrorMsg>> = async {
+                                                   : Async<Result<IncomingChannelEvent*Option<string>, IErrorMsg>> = async {
         let rec receiveEvent (activeChannel: ActiveChannel) = async {
             Infrastructure.LogDebug "Waiting for lightning message"
             let connectedChannel = activeChannel.ConnectedChannel
@@ -624,12 +624,12 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                     let! res = self.HandleMonoHopUnidirectionalPaymentMsg activeChannelAfterMsgReceived channelId monoHopUnidirectionalPaymentMsg
                     match res with
                     | Error err -> return Error err
-                    | Ok () -> return Ok IncomingChannelEvent.MonoHopUnidirectionalPayment
+                    | Ok () -> return Ok (IncomingChannelEvent.MonoHopUnidirectionalPayment, None)
                 | :? ShutdownMsg as shutdownMsg ->
                     let! res = self.HandleShutdownMsg activeChannelAfterMsgReceived shutdownMsg
                     match res with
                     | Error err -> return Error err
-                    | Ok () -> return Ok IncomingChannelEvent.Shutdown
+                    | Ok txId -> return Ok (IncomingChannelEvent.Shutdown, txId)
                 | _ ->
                     Infrastructure.LogDebug <| SPrintF2 "Ignoring this msg (%A): %A" (channelMsg.GetType()) channelMsg
                     return! receiveEvent activeChannelAfterMsgReceived
