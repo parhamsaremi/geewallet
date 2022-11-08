@@ -430,12 +430,14 @@ type internal TransportStream =
         async {
             let! directory = TorOperations.GetTorDirectory()
             try
-                let! torClient = TorOperations.TorConnect directory nonionEndPoint.Url
-                Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionEndPoint.Url
-                return Ok torClient
+                let! maybeTorClient = TorOperations.TorConnect directory nonionEndPoint.Url
+                match maybeTorClient with
+                | Ok torClient ->
+                    Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionEndPoint.Url
+                    return Ok TransportClientType.TorClient torClient
+                | Error ex ->
+                    return Error (ex :> Exception) |> Seq.singleton
             with
-            | :? NOnionException as ex ->
-                return Error (ex :> Exception |> Seq.singleton)
             | ex ->
                 let socketExceptions = FindSingleException<SocketException> ex
                 let exceptions = 

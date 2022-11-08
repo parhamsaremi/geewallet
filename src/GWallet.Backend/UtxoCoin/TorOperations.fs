@@ -112,10 +112,17 @@ module internal TorOperations =
 
     let internal TorConnect directory url =
         async {
-            return! FSharpUtil.Retry<TorServiceClient, NOnionException>
-                (fun _ -> TorServiceClient.Connect directory url)
-                Config.TOR_CONNECTION_RETRY_COUNT
+            try
+                let! connectedServiceClient = 
+                    FSharpUtil.Retry<TorServiceClient, NOnionException>
+                        (fun _ -> TorServiceClient.Connect directory url)
+                        Config.TOR_CONNECTION_RETRY_COUNT
+                return Ok connectedServiceClient
+            with
+            | :? NOnionException as ex ->
+                return Error ex
         }
+
 
     let internal ExtractServerListFromGithub() : List<(string*string)> =
         let urlToTorServerList = "https://raw.githubusercontent.com/torproject/tor/main/src/app/config/fallback_dirs.inc"
