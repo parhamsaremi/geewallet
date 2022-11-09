@@ -434,9 +434,9 @@ type internal TransportStream =
                 match maybeTorClient with
                 | Ok torClient ->
                     Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionEndPoint.Url
-                    return Ok TransportClientType.TorClient torClient
+                    return Ok torClient
                 | Error ex ->
-                    return Error (ex :> Exception) |> Seq.singleton
+                    return Error (ex :> Exception |> Seq.singleton)
             with
             | ex ->
                 let socketExceptions = FindSingleException<SocketException> ex
