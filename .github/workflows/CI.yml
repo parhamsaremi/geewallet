@@ -74,8 +74,8 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
     - name: build
       run: |
-        msbuild -t:CompileResourceDesignerForFSharp gwallet.android.sln
-        msbuild -t:Build gwallet.android.sln
+        dotnet restore gwallet.android.sln
+        dotnet build gwallet.android.sln
 
   linux22-github--xbuild:
     runs-on: ubuntu-22.04
