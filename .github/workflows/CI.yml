@@ -70,6 +70,8 @@ jobs:
         dotnet workload install maui
     - name: check workloads
       run: dotnet workload list
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
     - name: build
       run: |
         msbuild -t:CompileResourceDesignerForFSharp gwallet.android.sln
