@@ -70,7 +70,10 @@ jobs:
         dotnet workload install maui
     - name: check workloads
       run: dotnet workload list
-
+    - name: build
+      run: |
+        msbuild -t:CompileResourceDesignerForFSharp gwallet.android.sln
+        msbuild -t:Build gwallet.android.sln
 
   linux22-github--xbuild:
     runs-on: ubuntu-22.04
