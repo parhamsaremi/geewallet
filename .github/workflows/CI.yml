@@ -55,6 +55,17 @@ jobs:
     #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
     - name: integration tests
       run: .\make update-servers
+  
+  android:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: check sdks
+      run: dotnet --list-sdks
+    - name: check workloads
+      run: dotnet workload list
 
   linux22-github--xbuild:
     runs-on: ubuntu-22.04
