@@ -64,8 +64,13 @@ jobs:
         submodules: false
     - name: check sdks
       run: dotnet --list-sdks
+    - name: install workloads
+      run: |
+        dotnet workload install android
+        dotnet workload install maui
     - name: check workloads
       run: dotnet workload list
+
 
   linux22-github--xbuild:
     runs-on: ubuntu-22.04
