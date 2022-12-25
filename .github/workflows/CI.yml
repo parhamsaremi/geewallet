@@ -75,7 +75,7 @@ jobs:
     - name: build
       run: |
         dotnet restore gwallet.android.sln
-        dotnet build gwallet.android.sln
+        dotnet build gwallet.android.sln || dotnet build gwallet.android.sln
 
   linux22-github--xbuild:
     runs-on: ubuntu-22.04
