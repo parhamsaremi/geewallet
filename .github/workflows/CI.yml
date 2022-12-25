@@ -23,10 +23,10 @@ jobs:
     - name: check workloads
       run: dotnet workload list
     - name: restore android project
-      run: dotnet restore gwallet.android.sln
+      run: msbuild -t:restore gwallet.android.sln
     - name: build android project
       run: |
-        dotnet build gwallet.android.sln || dotnet build gwallet.android.sln
+        msbuild -t:build gwallet.android.sln || msbuild -t:build gwallet.android.sln
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
