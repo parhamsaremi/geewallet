@@ -22,9 +22,11 @@ jobs:
       run: dotnet --list-sdks
     - name: check workloads
       run: dotnet workload list
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
     - name: build
       run: |
-        dotnet restore gwallet.android.sln
+        msbuild gwallet.android.sln -t:restore 
         dotnet build gwallet.android.sln || dotnet build gwallet.android.sln
     - name: configure
       run: ./configure.sh
