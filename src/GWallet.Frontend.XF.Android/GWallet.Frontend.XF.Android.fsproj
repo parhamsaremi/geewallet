@@ -7,7 +7,7 @@
 	<ItemGroup>
 		<Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs" Link="Properties\CommonAssemblyInfo.fs" />
 		<Compile Include="Properties\AssemblyInfo.fs" />
-		<None Include="AndroidManifest.xml" />
+		<None Include="Properties\AndroidManifest.xml" />
 		<Compile Include="MainActivity.fs" />
 	</ItemGroup>
 	<ItemGroup>
