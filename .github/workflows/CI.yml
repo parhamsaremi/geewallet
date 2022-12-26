@@ -17,6 +17,10 @@ jobs:
     - name: install workloads
       run: |
         dotnet workload install android
+        dotnet workload install ios
+    - name: dotnet build
+      run: |
+        dotnet build gwallet.ios.sln
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
