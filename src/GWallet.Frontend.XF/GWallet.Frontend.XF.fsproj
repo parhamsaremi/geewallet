@@ -132,9 +132,16 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0-ios' ">
+    <PackageReference Include="Xamarin.Forms" Version="[5.0.0.1]" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0-android' ">
+    <PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
-    <PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="3.0.0--date20220902-0549.git-462686e" />
     <PackageReference Include="DotNetEssentials" Version="1.6.1--date20220823-0234.git-14ad2d3" />

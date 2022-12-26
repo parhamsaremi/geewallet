@@ -14,9 +14,17 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: configure NuGet.config
+      run: |
+        sed -i '' "s/-USER-/${{ github.actor }}/g" NuGet.config
+        sed -i '' "s/-TOKEN-/${{ secrets.GITHUB_TOKEN }}/g" NuGet.config
     - name: install workloads
       run: |
         dotnet workload install android
+        dotnet workload install ios
+    - name: dotnet build
+      run: |
+        dotnet build gwallet.ios.sln
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode

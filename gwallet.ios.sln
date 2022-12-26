@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj", "{BC154570-1874-4718-A937-B9AD7FAB34C0}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.XF", "src\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{A882E2AA-7E60-44C5-9FCE-478798E22D59}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.XF.iOS", "src\GWallet.Frontend.XF.iOS\GWallet.Frontend.XF.iOS.fsproj", "{A7A70F4F-0F65-4323-90F7-EADD2EE05D46}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BC154570-1874-4718-A937-B9AD7FAB34C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC154570-1874-4718-A937-B9AD7FAB34C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC154570-1874-4718-A937-B9AD7FAB34C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC154570-1874-4718-A937-B9AD7FAB34C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A882E2AA-7E60-44C5-9FCE-478798E22D59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A882E2AA-7E60-44C5-9FCE-478798E22D59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A882E2AA-7E60-44C5-9FCE-478798E22D59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A882E2AA-7E60-44C5-9FCE-478798E22D59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7A70F4F-0F65-4323-90F7-EADD2EE05D46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7A70F4F-0F65-4323-90F7-EADD2EE05D46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7A70F4F-0F65-4323-90F7-EADD2EE05D46}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{A7A70F4F-0F65-4323-90F7-EADD2EE05D46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7A70F4F-0F65-4323-90F7-EADD2EE05D46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7A70F4F-0F65-4323-90F7-EADD2EE05D46}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7D015336-65E3-4C6E-B835-4224084F9874}
+	EndGlobalSection
+EndGlobal
