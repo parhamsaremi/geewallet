@@ -30,6 +30,7 @@ let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
 let MAC_SOLUTION_FILE = "gwallet.mac.sln"
+let ANDROID_SOLUTION_FILE = "gwallet.android.sln"
 let BACKEND = "GWallet.Backend"
 
 type Frontend =
@@ -185,6 +186,26 @@ let BuildSolution
         Environment.Exit 1
     | _ -> ()
 
+let DotNetBuildSolution 
+    (dotnetMode: string)
+    (solutionFileName: string)
+    (binaryConfig: BinaryConfig)
+    (ignoreError: bool)
+    =
+    let configOption = sprintf "-c %s" (binaryConfig.ToString())
+    let buildArgs = (sprintf "%s %s %s" dotnetMode configOption solutionFileName)
+    let buildProcess = Process.Execute ({ Command = "dotnet"; Arguments = buildArgs }, Echo.All)
+    match buildProcess.Result with
+    | Error _ ->
+        if not ignoreError then
+            Console.WriteLine()
+            Console.Error.WriteLine "dotnet build failed"
+            PrintNugetVersion() |> ignore
+            Environment.Exit 1
+        else
+            ()
+    | _ -> ()
+
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
     if buildTool.IsNone then
@@ -222,6 +243,11 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 
                 //this is because building in release requires code signing keys
                 if binaryConfig = BinaryConfig.Debug then
+                    Console.WriteLine ("start building the android solution")
+                    DotNetBuildSolution "build" ANDROID_SOLUTION_FILE binaryConfig true
+                    DotNetBuildSolution "build" ANDROID_SOLUTION_FILE binaryConfig false
+                    Console.WriteLine ("finished building the android solution")
+
                     let solution = MAC_SOLUTION_FILE
 
                     ExplicitRestore solution
