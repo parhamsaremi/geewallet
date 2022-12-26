@@ -18,13 +18,6 @@ jobs:
       run: |
         dotnet workload install android
         dotnet workload install maui
-    - name: check sdks
-      run: dotnet --list-sdks
-    - name: check workloads
-      run: dotnet workload list
-    - name: build android project
-      run: |
-        dotnet build gwallet.android.sln || dotnet build gwallet.android.sln
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
