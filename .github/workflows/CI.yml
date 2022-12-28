@@ -23,7 +23,7 @@ jobs:
         dotnet workload install ios
     - name: dotnet build
       run: |
-        dotnet build TempIOS.sln
+        dotnet build gwallet.ios.sln
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
