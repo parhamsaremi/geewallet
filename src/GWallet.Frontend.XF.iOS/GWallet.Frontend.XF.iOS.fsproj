@@ -63,8 +63,7 @@
     <Compile Include="AppDelegate.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
-    <PackageReference Include="DotNetEssentials" Vversion="1.6.1--date20220823-0234.git-14ad2d3" />
+	<PackageReference Include="Xamarin.Forms" Version="[5.0.0.1]" />
     <PackageReference Include="ZXing.Net" Version="0.16.6" />
     <PackageReference Include="ZXing.Net.Xamarin" Version="3.0.0--date20220902-0549.git-462686e" />
     <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="3.0.0--date20220902-0549.git-462686e" />
