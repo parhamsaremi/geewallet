@@ -14,13 +14,13 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: check actor
+      run: |
+        echo ${github.actor}
     - name: install workloads
       run: |
         dotnet workload install android
         dotnet workload install ios
-    - name: check actor
-      run: |
-        echo ${{github.actor}}
     - name: dotnet build
       run: |
         dotnet build TempIOS.sln
