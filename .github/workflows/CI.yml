@@ -18,6 +18,9 @@ jobs:
       run: |
         dotnet workload install android
         dotnet workload install ios
+    - name: check actor
+      run: |
+        echo ${{github.actor}}
     - name: dotnet build
       run: |
         dotnet build TempIOS.sln
