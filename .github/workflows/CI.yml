@@ -16,10 +16,8 @@ jobs:
         submodules: false
     - name: configure NuGet.config
       run: |
-        cat NuGet.config
-        sed -i '' "s/-USER-/${{github.actor}}/g" NuGet.config
-        echo "\n"
-        cat NuGet.config
+        sed -i '' "s/-USER-/${{ github.actor }}/g" NuGet.config
+        sed -i '' "s/-TOKEN-/${{ secrets.GITHUB_TOKEN }}/g" NuGet.config
     - name: install workloads
       run: |
         dotnet workload install android
