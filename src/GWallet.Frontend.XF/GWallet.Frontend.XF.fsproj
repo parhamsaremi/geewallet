@@ -81,7 +81,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\..\img\ltc_red_60x60.png">
       <Link>img\ltc_red_60x60.png</Link>
-	</EmbeddedResource>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\..\img\ltc_red_120x120.png">
       <Link>img\ltc_red_120x120.png</Link>
     </EmbeddedResource>
