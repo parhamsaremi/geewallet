@@ -32,7 +32,7 @@
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Xamarin.Forms" Version="[5.0.0.1]" />
+    <PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\src.fsproj" />
