@@ -31,6 +31,14 @@ let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
 let MAC_SOLUTION_FILE = "gwallet.mac.sln"
+let MAUI_PROJECT_FILE = 
+    Path.Combine(
+        [| 
+            "src"
+            "GWallet.Frontend.Maui"
+            "GWallet.Frontend.Maui.fsproj"
+        |]
+    )
 let BACKEND = "GWallet.Backend"
 
 type Frontend =
@@ -164,16 +172,41 @@ let BuildSolution
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
+    let defineConstantsSoFar =
+        if not(solutionFileName.EndsWith "maui.sln") then
+            Seq.append ["XAMARIN"] defineConstantsFromBuildConfig
+        else
+            defineConstantsFromBuildConfig
     let allDefineConstants =
         match maybeConstant with
-        | Some constant -> Seq.append [constant] defineConstantsFromBuildConfig
-        | None -> defineConstantsFromBuildConfig
+        | Some constant -> Seq.append [constant] defineConstantsSoFar
+        | None -> defineConstantsSoFar
+
 
     let configOptions =
         if allDefineConstants.Any() then
             // FIXME: we shouldn't override the project's DefineConstants, but rather set "ExtraDefineConstants"
             // from the command line, and merge them later in the project file: see https://stackoverflow.com/a/32326853/544947
-            sprintf "%s;DefineConstants=%s" configOption (String.Join(";", allDefineConstants))
+            let defineConstants =
+                match binaryConfig with
+                | Release -> allDefineConstants
+                | Debug ->
+                    if not (allDefineConstants.Contains "DEBUG") then
+                        Seq.append allDefineConstants ["DEBUG"]
+                    else
+                        allDefineConstants
+
+            if buildTool = "xbuild" then
+                // see https://github.com/dotnet/sdk/issues/9562
+                let semiColon = "%3B"
+                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
+            else
+                let semiColon = ";"
+                match Misc.GuessPlatform () with
+                | Misc.Platform.Windows ->
+                    sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
+                | _ -> 
+                    sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
     let buildArgs = sprintf "%s %s %s"
@@ -188,6 +221,45 @@ let BuildSolution
         PrintNugetVersion() |> ignore
         Environment.Exit 1
     | _ -> ()
+
+let CopyXamlFiles() = 
+    let files = [| "WelcomePage.xaml"; "WelcomePage.xaml.fs" |]
+    for file in files do
+        let sourcePath = Path.Combine([| "src"; "GWallet.Frontend.XF"; file |])
+        let destPath = Path.Combine([| "src"; "GWallet.Frontend.Maui"; file |])
+            
+        File.Copy(sourcePath, destPath, true)
+        let extenstion = file.Split([| "." |], StringSplitOptions.RemoveEmptyEntries) |> Array.last
+        let mutable fileText = File.ReadAllText(destPath)
+        if extenstion = "xaml" then
+            fileText <- fileText.Replace("http://xamarin.com/schemas/2014/forms","http://schemas.microsoft.com/dotnet/2021/maui")
+        fileText <- fileText.Replace("GWallet.Frontend.XF", "GWallet.Frontend.Maui")
+        File.WriteAllText(destPath, fileText)
+
+let DotNetBuild
+    (solutionProjectFileName: string)
+    (binaryConfig: BinaryConfig)
+    (args: string)
+    (ignoreError: bool)
+    =
+    let configOption = sprintf "-c %s" (binaryConfig.ToString())
+    let buildArgs = (sprintf "build %s %s %s" configOption solutionProjectFileName args)
+    let buildProcess = Process.Execute ({ Command = "dotnet"; Arguments = buildArgs }, Echo.All)
+    match buildProcess.Result with
+    | Error _ ->
+        if not ignoreError then
+            Console.WriteLine()
+            Console.Error.WriteLine "dotnet build failed"
+            PrintNugetVersion() |> ignore
+            Environment.Exit 1
+        else
+            ()
+    | _ -> ()
+
+
+let BuildMauiProject binaryConfig =
+    DotNetBuild MAUI_PROJECT_FILE binaryConfig "--framework net6.0-android" true
+    DotNetBuild MAUI_PROJECT_FILE binaryConfig "--framework net6.0-android" false
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
@@ -231,6 +303,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     ExplicitRestore solution
 
                     MSBuildRestoreAndBuild solution
+
+                    CopyXamlFiles()
+                    BuildMauiProject binaryConfig
 
                 Frontend.Console
             | Misc.Platform.Linux ->
@@ -494,6 +569,9 @@ match maybeTarget with
         },
         Echo.All
     ).UnwrapDefault() |> ignore<string>
+
+| Some "maui" ->
+    CopyXamlFiles()
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
