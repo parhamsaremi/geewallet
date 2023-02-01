@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net6.0-android;net6.0-ios;net6.0-maccatalyst</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('linux'))">net6.0-gtk</TargetFrameworks>
     <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
     <!-- <TargetFrameworks>$(TargetFrameworks);net6.0-tizen</TargetFrameworks> -->
     <OutputType>Exe</OutputType>
@@ -32,6 +33,24 @@
     <TargetPlatformMinVersion Condition="$(TargetPlatformIdentifier) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     <SupportedOSPlatformVersion Condition="$(TargetPlatformIdentifier) == 'tizen'">6.5</SupportedOSPlatformVersion>
   </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('linux'))">
+    <UseMaui>false</UseMaui>
+    <MauiSubmodulePath>..\..\dependencies\maui</MauiSubmodulePath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('linux'))">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.5" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\BlazorWebView\src\Maui\Microsoft.AspNetCore.Components.WebView.Maui.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\Essentials\src\Essentials.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\Controls\src\Core\Controls.Core.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\Controls\src\Xaml\Controls.Xaml.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\Core\src\Core.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\Compatibility\Core\src\Compatibility.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\Controls\Foldable\src\Controls.Foldable.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)\src\Controls\Maps\src\Controls.Maps.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="WelcomePage.xaml" />
@@ -123,5 +142,7 @@
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
   </ItemGroup>
+
+  <Import Condition="$([MSBuild]::IsOSPlatform('linux'))" Project="$(MauiSubmodulePath)\src\Maui.InTree.props"/>
 
 </Project>
