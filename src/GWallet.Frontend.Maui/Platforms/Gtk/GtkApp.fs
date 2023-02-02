@@ -9,4 +9,4 @@ open Microsoft.Maui.Hosting
 type GtkApp() = 
     inherit MauiGtkApplication()
 
-    override _.CreateMauiApp() = MauiProgram.CreateMauiGtkApp()
+    override _.CreateMauiApp() = MauiProgram.CreateMauiApp()

@@ -62,10 +62,6 @@
     <Compile Include="WelcomePage.xaml.fs">
       <DependentUpon>WelcomePage.xaml</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="AppShell.xaml" />
-    <Compile Include="AppShell.xaml.fs">
-      <DependentUpon>AppShell.xaml</DependentUpon>
-    </Compile>
     <EmbeddedResource Include="App.xaml" />
     <Compile Include="App.xaml.fs">
       <DependentUpon>App.xaml</DependentUpon>
