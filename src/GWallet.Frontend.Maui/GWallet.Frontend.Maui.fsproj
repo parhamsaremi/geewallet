@@ -43,6 +43,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.5" />
     <ProjectReference Include="$(MauiSubmodulePath)src\BlazorWebView\src\Maui\Microsoft.AspNetCore.Components.WebView.Maui.csproj" />
     <ProjectReference Include="$(MauiSubmodulePath)src\Essentials\src\Essentials.csproj" />
