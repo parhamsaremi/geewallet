@@ -1,12 +1,15 @@
-using System;
-using System.Threading.Tasks;
-using GLib;
-using Maui.SimpleSampleApp;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Maui;
-using Microsoft.Maui.Hosting;
+namespace GWallet.Frontend.Maui
+
+open System
+open System.Threading.Tasks
+open GLib
+open Microsoft.Extensions.Hosting
+open Microsoft.Maui
+open Microsoft.Maui.Hosting
 
 module Program = 
     [<EntryPoint>]
     let main args = 
-        ()
+        let app = GtkApp()
+        app.Run()
+        0
