@@ -164,6 +164,7 @@ jobs:
         ls ../../GtkSharp/BuildOutput/NugetPackages
         dotnet nuget add source '../../GtkSharp/BuildOutput/NugetPackages'
         cd ../..
+        dotnet nuget add source 'GtkSharp/BuildOutput/NugetPackages'
     - name: Build GWallet
       run: |
         cd src/GWallet.Frontend.Maui/
