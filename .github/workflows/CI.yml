@@ -142,9 +142,6 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '6.0.401'
-    - name: Move GtKSharp
-      run: |
-        mv GtkSharp ..
     - name: ls
       run: |
         ls -la
@@ -152,19 +149,20 @@ jobs:
         ls -la ..
     - name: Build GtkSharp
       run: |
-        cd ../GtkSharp
+        cd GtkSharp
         dotnet tool restore
         # Disable GTKSharp's cake versioning behaviour with github ci
         # beceause it breaks InstallWorkload step.
         export GITHUB_ACTIONS=
         dotnet cake build.cake --BuildVersion=3.24.24.64
         dotnet cake --BuildTarget=InstallWorkload --BuildVersion=3.24.24.64
-        cd ../geewallet
+        cd ..
     - name: Add Maui Nuget source
       run: |
         cd dependencies/maui
         ls
-        dotnet nuget add source '../GtkSharp/BuildOutput/NugetPackages'
+        ls ../../GtkSharp/BuildOutput/NugetPackages
+        dotnet nuget add source '../../GtkSharp/BuildOutput/NugetPackages'
         cd ../..
     - name: Build GWallet
       run: |
