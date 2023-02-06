@@ -126,8 +126,9 @@ jobs:
   linux22-github:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
+        path: geewallet
         submodules: true
     - name: Checkout GTKSharp repo
       uses: actions/checkout@v3
@@ -145,8 +146,8 @@ jobs:
     - name: ls
       run: |
         ls -la
-        ls -la dependencies/maui
-        ls -la ..
+        ls -la geewallet/dependencies/maui
+        ls -la GtkSharp
     - name: Build GtkSharp
       run: |
         cd GtkSharp
@@ -157,17 +158,27 @@ jobs:
         dotnet cake build.cake --BuildVersion=3.24.24.64
         dotnet cake --BuildTarget=InstallWorkload --BuildVersion=3.24.24.64
         cd ..
+    - name: check workloads
+      run: dotnet workload list
     - name: Add Maui Nuget source
       run: |
-        cd dependencies/maui
-        ls -la ../../GtkSharp/BuildOutput/NugetPackages
-        dotnet nuget add source '../../GtkSharp/BuildOutput/NugetPackages'
-        cd ../..
+        cd geewallet/dependencies/maui
+        ls -la ../../../GtkSharp/BuildOutput/NugetPackages
+        dotnet nuget add source '../../../GtkSharp/BuildOutput/NugetPackages'
+        cd ../../..
     - name: Cat for test
-      run: cat dependencies/maui/NuGet.config
+      run: cat geewallet/dependencies/maui/NuGet.config
     - name: Build GWallet
       run: |
-        cd src/GWallet.Frontend.Maui/
+        cd geewallet/src/GWallet.Frontend.Maui/
+        dotnet build GWallet.Frontend.Maui.fsproj --framework=net6.0-gtk || true
+        cd ../../dependencies/maui
+        echo "before edit"
+        cat NuGet.config
+        sed -i "s+../../../GtkSharp/BuildOutput/NugetPackages+../GtkSharp/BuildOutput/NugetPackages+g" NuGet.config
+        echo "after edit"
+        cat NuGet.config
+        cd ../../src/GWallet.Frontend.Maui/
         dotnet build GWallet.Frontend.Maui.fsproj --framework=net6.0-gtk
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
