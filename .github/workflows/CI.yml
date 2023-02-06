@@ -160,15 +160,13 @@ jobs:
     - name: Add Maui Nuget source
       run: |
         cd dependencies/maui
-        ls
-        ls ../../GtkSharp/BuildOutput/NugetPackages
+        ls -la ../../GtkSharp/BuildOutput/NugetPackages
         dotnet nuget add source '../../GtkSharp/BuildOutput/NugetPackages'
         cd ../..
-        dotnet nuget add source 'GtkSharp/BuildOutput/NugetPackages'
     - name: Build GWallet
       run: |
         cd src/GWallet.Frontend.Maui/
-        dotnet build GWallet.Frontend.Maui.fsproj
+        dotnet build GWallet.Frontend.Maui.fsproj --framework=net6.0-gtk
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
