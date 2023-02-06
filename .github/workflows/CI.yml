@@ -161,6 +161,8 @@ jobs:
       run: |
         cd dependencies/maui
         dotnet nuget add source '../../GtkSharp/BuildOutput/NugetPackages'
+        dotnet nuget add source '../GtkSharp/BuildOutput/NugetPackages'
+        dotnet nuget add source 'GtkSharp/BuildOutput/NugetPackages'
         cd ../..
     - name: Build GWallet
       run: |
