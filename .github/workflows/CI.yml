@@ -145,7 +145,7 @@ jobs:
     - name: ls
       run: |
         ls -la
-        ls -la dependencies
+        ls -la dependencies/maui
         ls -la ..
     - name: Build GtkSharp
       run: |
