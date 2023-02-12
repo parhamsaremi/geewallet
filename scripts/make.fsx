@@ -229,6 +229,9 @@ let BuildSolution
         Environment.Exit 1
     | _ -> ()
 
+let RemoveFontSize(textXamlFile) = 
+    Regex.Replace(textXamlFile,"FontSize=\"(Small|Large)\"","")
+
 // TODO: we have to change this function to be the other way around (i.e. copy from Maui to XF) once we
 //       have a finished version of Maui and we consider XF as legacy.
 let CopyXamlFiles() = 
@@ -244,6 +247,7 @@ let CopyXamlFiles() =
             fileText
                 .Replace("http://xamarin.com/schemas/2014/forms","http://schemas.microsoft.com/dotnet/2021/maui")
                 .Replace("GWallet.Frontend.XF", "GWallet.Frontend.Maui")
+                |> RemoveFontSize
         )
 
         
