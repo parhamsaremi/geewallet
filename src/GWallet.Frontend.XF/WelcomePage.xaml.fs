@@ -10,6 +10,7 @@ open System.Linq
 open Microsoft.Maui.Controls
 open Microsoft.Maui.Controls.Xaml
 open Microsoft.Maui.Networking
+open Microsoft.Maui.ApplicationModel
 #else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -99,7 +100,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             else
                 "Loading..."
 
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             passphraseEntry.IsEnabled <- enabled
             passphraseConfirmationEntry.IsEnabled <- enabled
             dobDatePicker.IsEnabled <- enabled
@@ -127,13 +128,13 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                         (fun () ->
                             this.DisplayAlert("Alert", warning, "OK")
                         )
-                        |> Device.InvokeOnMainThreadAsync
+                        |> MainThread.InvokeOnMainThreadAsync
                         |> Async.AwaitTask
                 }
             | None ->
                 async {
                     let! mainThreadSynchContext =
-                        Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                        Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
                     do! Async.SwitchToContext mainThreadSynchContext
 #if XAMARIN
                     let dateTime = dobDatePicker.Date
@@ -159,7 +160,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                 this.DisplayAlert("Alert", "The field for Date of Birth has not been set, are you sure?", "Yes, the date is correct", "Cancel")
             async {
                 let! mainThreadSynchContext =
-                    Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                    Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
                 do! Async.SwitchToContext mainThreadSynchContext
                 let! continueAnyway = Async.AwaitTask displayTask
                 if continueAnyway then
@@ -176,7 +177,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
     member this.OnMoreInfoButtonClicked(_sender: Object, _args: EventArgs) =
         this.DisplayInfo
-        |> Device.InvokeOnMainThreadAsync
+        |> MainThread.InvokeOnMainThreadAsync
         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member __.OnOkButtonClicked(_sender: Object, _args: EventArgs) =

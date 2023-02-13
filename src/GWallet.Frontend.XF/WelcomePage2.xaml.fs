@@ -3,8 +3,13 @@
 open System
 open System.Threading.Tasks
 
+#if XAMARIN
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open Xamarin.Essentials
+#else
+open Microsoft.Maui.ApplicationModel
+#endif
 
 open GWallet.Backend
 
@@ -33,7 +38,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
             else
                 "Finishing..."
 
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             password.IsEnabled <- enabled
             passwordConfirmation.IsEnabled <- enabled
             finishButton.IsEnabled <- enabled

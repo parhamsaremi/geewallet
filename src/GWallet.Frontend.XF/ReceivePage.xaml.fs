@@ -2,12 +2,16 @@
 
 open System
 
+#if XAMARIN
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
 open ZXing
 open ZXing.Net.Mobile.Forms
 open ZXing.Common
+#else
+open Microsoft.Maui.ApplicationModel
+#endif
 
 open GWallet.Backend
 
@@ -85,7 +89,7 @@ type ReceivePage(account: IAccount,
 
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
             )
         ) |> ignore

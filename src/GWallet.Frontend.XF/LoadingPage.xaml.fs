@@ -3,8 +3,13 @@
 open System
 open System.Linq
 
+#if XAMARIN
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open Xamarin.Essentials
+#else
+open Microsoft.Maui.ApplicationModel
+#endif
 open Fsdk
 
 open GWallet.Backend
@@ -61,7 +66,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     let mutable keepAnimationTimerActive = true
 
     let UpdateDotsLabel() =
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             let currentCountPlusOne = loadingLabel.Text.Count(fun x -> x = '.') + 1
             let dotsCount =
                 if currentCountPlusOne > dotsMaxCount then
@@ -74,7 +79,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         keepAnimationTimerActive
 
     let ShowLoadingText() =
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             mainLayout.VerticalOptions <- LayoutOptions.Center
             mainLayout.Padding <- Thickness(20.,0.,20.,50.)
             logoImg.IsVisible <- false
@@ -126,7 +131,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
     member this.Init (): unit =
         if showLogoFirst then
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 mainLayout.Children.Add logoImg
             )
 
