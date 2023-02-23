@@ -95,6 +95,9 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         else
             None
 
+// ToggleInputWidgetsEnabledOrDisabled is not used since its usage is in another 
+// #if block.
+#if XAMARIN
     let ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
         let newCreateButtonCaption =
             if enabled then
@@ -110,6 +113,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             nextButton.IsEnabled <- enabled
             nextButton.Text <- newCreateButtonCaption
         )
+#endif
 
     do
         dobDatePicker.MaximumDate <- DateTime.UtcNow.Date
