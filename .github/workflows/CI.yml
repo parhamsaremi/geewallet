@@ -135,13 +135,15 @@ jobs:
     # but MAUI failed to build on this version with this error:
     # Could not load file or assembly 'Microsoft.CodeAnalysis, Version=4.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'
     # so instead we added support for 6.0.4xx to GtkSharp
-    - name: Setup .NET SDK 6.0.401
+    - name: Setup .NET SDK 6.0.300
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.401'
+        dotnet-version: '6.0.300'
     # We need to build GtkSharp ourselves because the last shipped nuget package until now does not contain the latest changes comprising
     # works which is needed for building the GtkSharp net6 workload (https://github.com/GtkSharp/GtkSharp/commit/60376ae510c04aa4508365993643d5cec1d2b9f1).
     # Last shipped nuget package is version 3.24.24.24 (https://github.com/GtkSharp/GtkSharp/releases/tag/3.24.24.34) on April 2nd 2021.
+    - name: Check Dotnet Version
+      run: dotnet --version
     - name: Build GtkSharp
       run: |
         cd dependencies/GtkSharp
@@ -152,6 +154,8 @@ jobs:
         dotnet cake build.cake --BuildVersion=$GtkSharpVersion
         dotnet cake --BuildTarget=InstallWorkload --BuildVersion=$GtkSharpVersion
         cd ../..
+    - name: Check installed worklloads
+      run: dotnet workload list
     - name: Add Maui Nuget source
       run: |
         cd dependencies/maui
