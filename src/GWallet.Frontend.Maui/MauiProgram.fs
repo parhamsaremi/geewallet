@@ -8,11 +8,9 @@ open Microsoft.Extensions.DependencyInjection.Extensions
 #endif
 open Microsoft.Maui
 open Microsoft.Maui.Controls
-open Microsoft.Maui.Controls.Compatibility
 open Microsoft.Maui.Controls.Compatibility.Hosting
 open Microsoft.Maui.Controls.Hosting
 open Microsoft.Maui.Hosting
-open Microsoft.Maui.LifecycleEvents
 
 type MauiProgram =
     static member CreateMauiApp() =
