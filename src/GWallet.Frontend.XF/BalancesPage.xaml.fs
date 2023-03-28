@@ -59,7 +59,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
     let readOnlyAccountsBalanceSets = readOnlyBalanceStates.Select(fun balState -> balState.BalanceSet)
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let contentLayout = base.FindByName<StackLayout> "contentLayout"
+    let contentLayout = base.FindByName<Grid> "contentLayout"
     let normalChartView = base.FindByName<HoopChartView> "normalChartView"
     let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
 
@@ -150,7 +150,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             tail
                                             totalFiatAmountLabel
 
-    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
+    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: Grid) 
                                (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
         match elements with
         | [] -> resultsSoFar
@@ -254,6 +254,15 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             for activeCryptoBalance in activeCryptoBalances do
                 activeCryptoBalance.IsVisible <- true
         else
+#if !XAMARIN
+            contentLayout.RowDefinitions <- RowDefinitionCollection(
+                seq {
+                    for _ in balances do
+                        yield RowDefinition()
+                } |> Seq.toArray
+            )
+            let mutable i = 0
+#endif
             for balanceState in balances do
                 let balanceSet = balanceState.BalanceSet
                 let tapGestureRecognizer = TapGestureRecognizer()
@@ -267,7 +276,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 #endif                
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
+#if XAMARIN
                 contentLayout.Children.Add frame
+#else
+                contentLayout.Add(frame, 0, i)
+                i <- i + 1
+#endif
 
         contentLayout.BatchCommit()
 

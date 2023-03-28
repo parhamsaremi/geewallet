@@ -24,7 +24,7 @@
         </Grid>
 
         <ScrollView HorizontalOptions="FillAndExpand">
-            <StackLayout x:Name="contentLayout" />
+            <Grid x:Name="contentLayout" />
         </ScrollView>
 
         <Label Text="www.geewallet.com" x:Name="footerLabel"
