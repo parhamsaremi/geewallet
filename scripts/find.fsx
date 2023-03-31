@@ -5,7 +5,7 @@ open System.IO
 open System.Linq
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk"
+#r "nuget: Fsdk, 0.5.9.10"
 #else
 #r "System.Configuration"
 #load "fsx/Fsdk/Misc.fs"

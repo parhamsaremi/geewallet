@@ -4,7 +4,7 @@ open System
 open System.IO
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk"
+#r "nuget: Fsdk, 0.5.9.10"
 #else
 #r "System.Configuration"
 open System.Configuration
